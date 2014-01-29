@@ -7,4 +7,13 @@
     <string name="title_section2">Section 2</string>
     <string name="title_section3">Section 3</string>
 
+    <string-array name="priorities">
+        <item>(A) Need to be done ASAP</item>
+        <item>(B) Need to be done</item>
+        <item>(C) Need to be done, sometimes...</item>
+    </string-array>
+
+    <string name="title_activity_task">Task</string>
+    <string name="hello_world">Hello world!</string>
+
 </resources>

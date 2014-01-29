@@ -22,6 +22,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="de.m0ep.tudo2.TaskActivity"
+            android:label="@string/title_activity_task"
+            android:parentActivityName="de.m0ep.tudo2.MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="de.m0ep.tudo2.MainActivity" />
+        </activity>
     </application>
 
 </manifest>

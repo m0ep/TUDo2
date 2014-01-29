@@ -2,19 +2,19 @@ package de.m0ep.tudo2.model;
 
 import java.io.Serializable;
 
-public class TaskEntity implements Serializable {
+public class TaskEntry implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private long id;
 	private short state;
 	private short priority;
 	private String date;
-	private int durationinMinutes;
+	private int duration;
 	private String description;
 
-	public TaskEntity( final short priority, final int durationInMinutes, final String description ) {
+	public TaskEntry( final short priority, final int durationInMinutes, final String description ) {
 		this.priority = priority;
-		this.durationinMinutes = durationInMinutes;
+		this.duration = durationInMinutes;
 		this.description = description;
 	}
 
@@ -50,12 +50,12 @@ public class TaskEntity implements Serializable {
 		this.date = date;
 	}
 
-	public int getDurationinMinutes() {
-		return this.durationinMinutes;
+	public int getDuration() {
+		return this.duration;
 	}
 
-	public void setDurationinMinutes( int durationinMinutes ) {
-		this.durationinMinutes = durationinMinutes;
+	public void setDuration( int duration ) {
+		this.duration = duration;
 	}
 
 	public String getDescription() {
@@ -71,7 +71,7 @@ public class TaskEntity implements Serializable {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ( ( this.description == null ) ? 0 : this.description.hashCode() );
-		result = prime * result + this.durationinMinutes;
+		result = prime * result + this.duration;
 		result = prime * result + (int) ( this.id ^ ( this.id >>> 32 ) );
 		result = prime * result + this.priority;
 		result = prime * result + this.state;
@@ -87,7 +87,7 @@ public class TaskEntity implements Serializable {
 		if ( obj == null || getClass() != obj.getClass() )
 			return false;
 
-		TaskEntity other = (TaskEntity) obj;
+		TaskEntry other = (TaskEntry) obj;
 
 		if ( this.description == null ) {
 			if ( other.description != null )
@@ -96,7 +96,7 @@ public class TaskEntity implements Serializable {
 			return false;
 		}
 
-		if ( this.durationinMinutes != other.durationinMinutes ) {
+		if ( this.duration != other.duration ) {
 			return false;
 		}
 
