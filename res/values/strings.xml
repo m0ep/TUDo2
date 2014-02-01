@@ -3,17 +3,18 @@
 
     <string name="app_name">TUDo2</string>
     <string name="action_settings">Settings</string>
-    <string name="title_section1">Section 1</string>
-    <string name="title_section2">Section 2</string>
-    <string name="title_section3">Section 3</string>
 
     <string-array name="priorities">
-        <item>(A) Need to be done ASAP</item>
-        <item>(B) Need to be done</item>
-        <item>(C) Need to be done, sometimes...</item>
+        <item>ASAP!</item>
+        <item>Soon</item>
+        <item>Some day &#8230;</item>
     </string-array>
 
     <string name="title_activity_task">Task</string>
     <string name="hello_world">Hello world!</string>
-
+    <string name="label_priority">Priority:</string>
+    <string name="label_date">Date:</string>
+    <string name="label_duration">Duration:</string>
+    <string name="hint_description">Description</string>
+    <string name="button_date_mockup">yyyy-MM-dd</string>
 </resources>
