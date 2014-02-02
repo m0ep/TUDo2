@@ -14,6 +14,7 @@ import android.support.v4.view.ViewPager;
 import android.view.Menu;
 import android.view.MenuItem;
 import de.m0ep.tudo2.fragment.ListDayTaskFragment;
+import de.m0ep.tudo2.provider.TaskProvider;
 
 public class MainActivity extends FragmentActivity {
 
@@ -31,7 +32,7 @@ public class MainActivity extends FragmentActivity {
 	 * The {@link ViewPager} that will host the section contents.
 	 */
 	ViewPager mViewPager;
-	Calendar[] time = new Calendar[3];
+	PageModel[] pageModels = new PageModel[3];
 	DateFormat dateFormat;
 
 	@Override
@@ -50,14 +51,17 @@ public class MainActivity extends FragmentActivity {
 
 		dateFormat = android.text.format.DateFormat.getDateFormat( getApplicationContext() );
 
-		time[1] = Calendar.getInstance( Locale.getDefault() );
-		time[1].setTimeInMillis( System.currentTimeMillis() );
+		Calendar curCal = Calendar.getInstance( Locale.getDefault() );
+		curCal.setTimeInMillis( System.currentTimeMillis() );
+		pageModels[1] = new PageModel( curCal );
 
-		time[0] = (Calendar) time[1].clone();
-		time[0].add( Calendar.DAY_OF_YEAR, -1 );
+		Calendar prvCal = (Calendar) curCal.clone();
+		prvCal.add( Calendar.DAY_OF_YEAR, -1 );
+		pageModels[0] = new PageModel( prvCal );
 
-		time[2] = (Calendar) time[1].clone();
-		time[2].add( Calendar.DAY_OF_YEAR, 1 );
+		Calendar nxtCal = (Calendar) curCal.clone();
+		nxtCal.add( Calendar.DAY_OF_YEAR, 1 );
+		pageModels[2] = new PageModel( nxtCal );
 
 		mViewPager.setOnPageChangeListener( new ViewPager.OnPageChangeListener() {
 			private int focusedPage;
@@ -76,25 +80,31 @@ public class MainActivity extends FragmentActivity {
 			@Override
 			public void onPageScrollStateChanged( int state ) {
 				if ( ViewPager.SCROLL_STATE_IDLE == state ) {
-					final Calendar oldLeftTime = time[0];
-					final Calendar oldCenterTime = time[1];
-					final Calendar oldRightTime = time[2];
-
 					if ( 0 == focusedPage ) {
-						final Calendar tmp = (Calendar) oldLeftTime.clone();
-						tmp.add( Calendar.DAY_OF_YEAR, -1 );
+						PageModel oldLeft = pageModels[0];
 
-						time[0] = tmp;
-						time[1] = oldLeftTime;
-						time[2] = oldCenterTime;
+						Calendar cal = (Calendar) oldLeft.date.clone();
+						cal.add( Calendar.DAY_OF_YEAR, -1 );
+						PageModel newLeft = new PageModel( cal );
+
+						pageModels[2] = pageModels[1];
+						pageModels[1] = oldLeft;
+						pageModels[0] = newLeft;
 					} else if ( 2 == focusedPage ) {
-						final Calendar tmp = (Calendar) oldRightTime.clone();
-						tmp.add( Calendar.DAY_OF_YEAR, 1 );
+						PageModel oldRight = pageModels[2];
 
-						time[0] = oldCenterTime;
-						time[1] = oldRightTime;
-						time[2] = tmp;
+						Calendar cal = (Calendar) oldRight.date.clone();
+						cal.add( Calendar.DAY_OF_YEAR, 1 );
+						PageModel newRight = new PageModel( cal );
+
+						pageModels[0] = pageModels[1];
+						pageModels[1] = oldRight;
+						pageModels[2] = newRight;
 					}
+
+					System.out.println( TaskProvider.formatDate( pageModels[0].date.getTime() ) );
+					System.out.println( TaskProvider.formatDate( pageModels[1].date.getTime() ) );
+					System.out.println( TaskProvider.formatDate( pageModels[2].date.getTime() ) );
 
 					mViewPager.setCurrentItem( 1, false );
 				}
@@ -119,6 +129,22 @@ public class MainActivity extends FragmentActivity {
 		return super.onOptionsItemSelected( item );
 	}
 
+	private static class PageModel {
+		public Calendar date;
+		public ListDayTaskFragment fragment;
+
+		public PageModel( Calendar date, ListDayTaskFragment fragment ) {
+			this.date = date;
+			this.fragment = fragment;
+		}
+
+		public PageModel( Calendar date ) {
+			this.date = date;
+			this.fragment = new ListDayTaskFragment();
+			this.fragment.setDate( date.getTime() );
+		}
+	}
+
 	/**
 	 * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
 	 * one of the sections/tabs/pages.
@@ -131,10 +157,7 @@ public class MainActivity extends FragmentActivity {
 
 		@Override
 		public Fragment getItem( int position ) {
-			ListDayTaskFragment fragment = new ListDayTaskFragment();
-			fragment.setDate( time[position].getTime() );
-			fragment.setArguments( null );
-			return fragment;
+			return pageModels[position].fragment;
 		}
 
 		@Override
@@ -145,7 +168,10 @@ public class MainActivity extends FragmentActivity {
 
 		@Override
 		public CharSequence getPageTitle( int position ) {
-			return dateFormat.format( time[position].getTime() );
+			return dateFormat.format(
+			        pageModels[position]
+			        .date
+			                .getTime() );
 		}
 	}
 }
