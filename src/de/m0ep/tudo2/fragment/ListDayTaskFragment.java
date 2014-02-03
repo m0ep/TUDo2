@@ -1,8 +1,6 @@
 package de.m0ep.tudo2.fragment;
 
 import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
 
 import android.database.Cursor;
 import android.os.Bundle;
@@ -24,7 +22,7 @@ public class ListDayTaskFragment extends ListFragment implements LoaderCallbacks
 
 	private static final String TAG = ListDayTaskFragment.class.getName();
 
-	private final Calendar calendar = Calendar.getInstance( Locale.getDefault() );;
+	private final Calendar calendar;
 
 	private static final String[] PROJECTION = {
 	        TaskEntry._ID,
@@ -35,33 +33,35 @@ public class ListDayTaskFragment extends ListFragment implements LoaderCallbacks
 	        TaskEntry.DESCRIPTION
 	};
 
-	String[] mappingFrom = {
+	private final String[] mappingFrom = {
 	        TaskEntry.PRIORITY,
 	        TaskEntry.DURATION,
 	        TaskEntry.DESCRIPTION
 	};
 
-	int[] mappingTo = {
+	private final int[] mappingTo = {
 	        R.id.text_priority,
 	        R.id.text_duration,
 	        R.id.text_description
 	};
 
-	String[] values = { "one", "two", "three", "four" };
 	SimpleCursorAdapter cursorAdapter;
 
 	private static final String SELECTION = TaskEntry.DATE + " = ?";
 
 	public ListDayTaskFragment() {
-		// TODO Auto-generated constructor stub
+		calendar = Calendar.getInstance();
 	}
 
-	public Date getDate() {
-		return calendar.getTime();
+	public Calendar getCalendar() {
+		return calendar;
 	}
 
-	public void setDate( final Date date ) {
-		calendar.setTime( date );
+	public void setCalendar( final Calendar calendar ) {
+		this.calendar.set(
+		        calendar.get( Calendar.YEAR ),
+		        calendar.get( Calendar.MONTH ),
+		        calendar.get( Calendar.DAY_OF_MONTH ) );
 
 		if ( isAdded() ) {
 			getLoaderManager().restartLoader( TASK_LOADER, null, this );

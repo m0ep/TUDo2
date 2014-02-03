@@ -139,6 +139,7 @@ public class TaskActivity extends Activity {
 
 		ContentResolver resolver = getContentResolver();
 		resolver.insert( TaskContract.TaskEntry.CONTENT_URI, values );
+		finish();
 	}
 
 	protected void doCancel() {
