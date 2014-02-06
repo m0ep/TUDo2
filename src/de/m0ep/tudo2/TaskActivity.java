@@ -1,7 +1,7 @@
 package de.m0ep.tudo2;
 
+import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -9,9 +9,10 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.DatePickerDialog.OnDateSetListener;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
-import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,16 +21,28 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
-import de.m0ep.tudo2.provider.TaskProvider;
+import android.widget.Toast;
+import de.m0ep.tudo2.provider.TaskContract;
 
 public class TaskActivity extends Activity {
 
-	EditText editDate;
-	EditText editDuration;
-	EditText editDescription;
-	Spinner spinnerPriority;
-	Button buttonPositive;
-	Button buttonNegative;
+	public static final String EXTRA_MODE = "mode";
+	public static final String EXTRA_TASK_ID = "task_id";
+
+	public static final int MODE_ADD_TASK = 0;
+	public static final int MODE_EDIT_TASK = 1;
+
+	private Button buttonDate;
+	private EditText editDuration;
+	private EditText editDescription;
+	private Spinner spinnerPriority;
+	private Button buttonPositive;
+	private Button buttonNegative;
+
+	private DateFormat dateFormat;
+
+	private int activityMode = MODE_ADD_TASK;
+	private int taskId = -1;
 
 	@Override
 	protected void onCreate( Bundle savedInstanceState ) {
@@ -38,25 +51,39 @@ public class TaskActivity extends Activity {
 		// Show the Up button in the action bar.
 		setupActionBar();
 
-		DateFormat dateFormat = new DateFormat();
+		dateFormat = android.text.format.DateFormat.getDateFormat( this );
 
 		spinnerPriority = (Spinner) findViewById( R.id.spinner_priorities );
-		editDate = (EditText) findViewById( R.id.edit_date );
+		buttonDate = (Button) findViewById( R.id.button_date );
 		editDuration = (EditText) findViewById( R.id.edit_duration );
 		editDescription = (EditText) findViewById( R.id.edit_description );
 		buttonPositive = (Button) findViewById( R.id.button_positive );
-		buttonNegative = (Button) findViewById( R.id.button_negative );
+		buttonPositive.setOnClickListener( new OnClickListener() {
+			@Override
+			public void onClick( View v ) {
+				doOk();
+			}
+		} );
 
-		editDate.setText( TaskProvider.formatDate( new Date() ) );
-		editDate.setOnClickListener( new OnClickListener() {
+		buttonNegative = (Button) findViewById( R.id.button_negative );
+		buttonNegative.setOnClickListener( new OnClickListener() {
+			@Override
+			public void onClick( View v ) {
+				doCancel();
+			}
+		} );
+
+		Date date = new Date();
+		buttonDate.setText( dateFormat.format( date ) );
+		buttonDate.setTag( date );
+		buttonDate.setOnClickListener( new OnClickListener() {
 			@SuppressLint( "SimpleDateFormat" )
 			@Override
 			public void onClick( View v ) {
 
 				Calendar cal = Calendar.getInstance();
 				try {
-					SimpleDateFormat formatter = new SimpleDateFormat( "yyyy-MM-dd" );
-					cal.setTime( formatter.parse( editDate.getText().toString() ) );
+					cal.setTime( dateFormat.parse( buttonDate.getText().toString() ) );
 				} catch ( ParseException e ) {
 					cal.setTime( new Date() );
 				}
@@ -68,7 +95,8 @@ public class TaskActivity extends Activity {
 					                int dayOfMonth ) {
 						        Calendar cal = Calendar.getInstance();
 						        cal.set( year, monthOfYear, dayOfMonth );
-						        editDate.setText( TaskProvider.formatDate( cal.getTime() ) );
+						        buttonDate.setText( dateFormat.format( cal.getTime() ) );
+						        buttonDate.setTag( cal.getTime() );
 					        }
 				        },
 				        cal.get( Calendar.YEAR ),
@@ -79,6 +107,43 @@ public class TaskActivity extends Activity {
 			}
 		} );
 
+		Bundle extras = getIntent().getExtras();
+		if ( null != extras ) {
+			activityMode = extras.getInt( EXTRA_MODE, MODE_ADD_TASK );
+
+			if ( MODE_EDIT_TASK == activityMode ) {
+				taskId = extras.getInt( EXTRA_TASK_ID, -1 );
+
+				if ( -1 == taskId ) {
+					Toast.makeText(
+					        getBaseContext(),
+					        R.string.error_task_edit_invalid_taskid,
+					        Toast.LENGTH_SHORT ).show();
+					finish();
+				}
+			}
+		}
+	}
+
+	protected void doOk() {
+		int priority = spinnerPriority.getSelectedItemPosition();
+		Date date = (Date) buttonDate.getTag();
+		int duration = Integer.parseInt( editDuration.getText().toString() ); // TODO: parse 12h, 12m....
+		String description = editDescription.getText().toString();
+
+		ContentValues values = new ContentValues();
+		values.put( TaskContract.TaskEntry.PRIORITY, priority );
+		values.put( TaskContract.TaskEntry.DATE, date.getTime() );
+		values.put( TaskContract.TaskEntry.DURATION, duration );
+		values.put( TaskContract.TaskEntry.DESCRIPTION, description );
+
+		ContentResolver resolver = getContentResolver();
+		resolver.insert( TaskContract.TaskEntry.CONTENT_URI, values );
+		finish();
+	}
+
+	protected void doCancel() {
+		finish();
 	}
 
 	/**
@@ -90,7 +155,6 @@ public class TaskActivity extends Activity {
 
 	@Override
 	public boolean onCreateOptionsMenu( Menu menu ) {
-		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate( R.menu.task, menu );
 		return true;
 	}
@@ -99,13 +163,6 @@ public class TaskActivity extends Activity {
 	public boolean onOptionsItemSelected( MenuItem item ) {
 		switch ( item.getItemId() ) {
 			case android.R.id.home:
-				// This ID represents the Home or Up button. In the case of this
-				// activity, the Up button is shown. Use NavUtils to allow users
-				// to navigate up one level in the application structure. For
-				// more details, see the Navigation pattern on Android Design:
-				//
-				// http://developer.android.com/design/patterns/navigation.html#up-vs-back
-				//
 				NavUtils.navigateUpFromSameTask( this );
 				return true;
 		}

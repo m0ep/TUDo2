@@ -19,9 +19,7 @@ import de.m0ep.tudo2.provider.TaskContract.TaskEntry;
 public class TaskProvider extends ContentProvider {
 	private static final String TAG = TaskProvider.class.getName();
 
-	public static final String AUTHORITY = "de.m0ep.tudo2";
-
-	private static final String DBNAME = "tudo2db";
+	private static final String DBNAME = "tudo2.db";
 
 	private static final UriMatcher URI_MATCHER = new UriMatcher( UriMatcher.NO_MATCH );
 
@@ -29,8 +27,8 @@ public class TaskProvider extends ContentProvider {
 	private static final int TASKS_ID = 2;
 
 	static {
-		URI_MATCHER.addURI( AUTHORITY, TaskEntry.TABLE_NAME, TASKS );
-		URI_MATCHER.addURI( AUTHORITY, TaskEntry.TABLE_NAME + "/#", TASKS_ID );
+		URI_MATCHER.addURI( TaskContract.AUTHORITY, TaskEntry.TABLE_NAME, TASKS );
+		URI_MATCHER.addURI( TaskContract.AUTHORITY, TaskEntry.TABLE_NAME + "/#", TASKS_ID );
 	}
 
 	private TaskSqliteHelper sqliteHelper;
@@ -49,10 +47,10 @@ public class TaskProvider extends ContentProvider {
 	public String getType( Uri uri ) {
 		switch ( URI_MATCHER.match( uri ) ) {
 			case TASKS:
-				return "android.cursor.dir/vnd." + AUTHORITY + "."
+				return "android.cursor.dir/vnd." + TaskContract.AUTHORITY + "."
 				        + TaskContract.TaskEntry.TABLE_NAME;
 			case TASKS_ID:
-				return "android.cursor.item/vnd." + AUTHORITY + "."
+				return "android.cursor.item/vnd." + TaskContract.AUTHORITY + "."
 				        + TaskContract.TaskEntry.TABLE_NAME;
 			default:
 				return null;
@@ -65,6 +63,16 @@ public class TaskProvider extends ContentProvider {
 			if ( values.containsKey( TaskEntry._ID ) ) {
 				values.remove( TaskEntry._ID );
 				Log.d( TAG, "Remove _id from ContentValues" );
+			}
+
+			if ( values.containsKey( TaskEntry.DATE ) ) {
+				Object obj = values.get( TaskEntry.DATE );
+
+				if ( obj instanceof Date ) {
+					values.put( TaskEntry.DATE, (String) formatDate( (Date) obj ) );
+				} else if ( obj instanceof Long ) {
+					values.put( TaskEntry.DATE, (String) formatDate( new Date( (Long) obj ) ) );
+				}
 			}
 
 			if ( values.containsKey( TaskEntry.DURATION ) ) {

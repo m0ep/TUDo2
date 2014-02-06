@@ -30,6 +30,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="de.m0ep.tudo2.MainActivity" />
         </activity>
+        <provider 
+            android:name=".provider.TaskProvider" 
+            android:authorities="de.m0ep.tudo2.taskprovider" 
+            android:label="task_provider" 
+            android:exported="true" 
+            android:readPermission="de.m0ep.tudo2.taskprovider.READ" 
+            android:writePermission="de.m0ep.tudo2.taskprovider.WRITE" 
+            android:grantUriPermissions="true">
+        </provider>
     </application>
 
 </manifest>
