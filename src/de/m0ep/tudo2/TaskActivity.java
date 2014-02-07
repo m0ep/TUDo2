@@ -1,18 +1,17 @@
 package de.m0ep.tudo2;
 
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.DatePickerDialog.OnDateSetListener;
-import android.content.ContentResolver;
-import android.content.ContentValues;
+import android.content.ContentUris;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,7 +21,10 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
+import de.m0ep.tudo2.model.TaskEntry;
+import de.m0ep.tudo2.model.TaskService;
 import de.m0ep.tudo2.provider.TaskContract;
+import de.m0ep.tudo2.provider.TaskProvider.TaskSQLiteHelper;
 
 public class TaskActivity extends Activity {
 
@@ -32,17 +34,24 @@ public class TaskActivity extends Activity {
 	public static final int MODE_ADD_TASK = 0;
 	public static final int MODE_EDIT_TASK = 1;
 
-	private Button buttonDate;
-	private EditText editDuration;
-	private EditText editDescription;
+	private static final String EXTRA_ADDED_TASK_URI = "extra_added_task_uri";
+
+	private EditText editTitle;
 	private Spinner spinnerPriority;
+	private Button buttonDueDate;
+	private EditText editNote;
+
 	private Button buttonPositive;
 	private Button buttonNegative;
 
 	private DateFormat dateFormat;
 
-	private int activityMode = MODE_ADD_TASK;
-	private int taskId = -1;
+	private final int activityMode = MODE_ADD_TASK;
+	private final int taskId = -1;
+
+	private TaskSQLiteHelper dbHelper;
+	private Calendar currentDate;
+	private String[] prioritiesArrays;
 
 	@Override
 	protected void onCreate( Bundle savedInstanceState ) {
@@ -51,13 +60,35 @@ public class TaskActivity extends Activity {
 		// Show the Up button in the action bar.
 		setupActionBar();
 
+		prioritiesArrays = getResources().getStringArray( R.array.array_priorities );
 		dateFormat = android.text.format.DateFormat.getDateFormat( this );
+		dbHelper = new TaskSQLiteHelper( this );
 
-		spinnerPriority = (Spinner) findViewById( R.id.spinner_priorities );
-		buttonDate = (Button) findViewById( R.id.button_date );
-		editDuration = (EditText) findViewById( R.id.edit_duration );
-		editDescription = (EditText) findViewById( R.id.edit_description );
+		currentDate = Calendar.getInstance();
+		currentDate.setTime( new Date() );
+
+		editTitle = (EditText) findViewById( R.id.edit_title );
+		spinnerPriority = (Spinner) findViewById( R.id.spinner_priority );
+		buttonDueDate = (Button) findViewById( R.id.edit_due_date );
+		editNote = (EditText) findViewById( R.id.edit_note );
 		buttonPositive = (Button) findViewById( R.id.button_positive );
+		buttonNegative = (Button) findViewById( R.id.button_negative );
+
+		initView();
+	}
+
+	protected void initView() {
+
+		buttonDueDate.setText( dateFormat.format( currentDate.getTime() ) );
+		buttonDueDate.setTag( currentDate );
+		buttonDueDate.setOnClickListener( new OnClickListener() {
+			@Override
+			public void onClick( View v ) {
+				DatePickerDialog datePickerDialog = createDatePickerDialog();
+				datePickerDialog.show();
+			}
+		} );
+
 		buttonPositive.setOnClickListener( new OnClickListener() {
 			@Override
 			public void onClick( View v ) {
@@ -65,80 +96,77 @@ public class TaskActivity extends Activity {
 			}
 		} );
 
-		buttonNegative = (Button) findViewById( R.id.button_negative );
 		buttonNegative.setOnClickListener( new OnClickListener() {
 			@Override
 			public void onClick( View v ) {
 				doCancel();
 			}
 		} );
+	}
 
-		Date date = new Date();
-		buttonDate.setText( dateFormat.format( date ) );
-		buttonDate.setTag( date );
-		buttonDate.setOnClickListener( new OnClickListener() {
-			@SuppressLint( "SimpleDateFormat" )
-			@Override
-			public void onClick( View v ) {
+	protected DatePickerDialog createDatePickerDialog() {
+		DatePickerDialog dpd = new DatePickerDialog(
+		        TaskActivity.this,
+		        new OnDateSetListener() {
+			        @Override
+			        public void onDateSet( DatePicker view, int year, int monthOfYear,
+			                int dayOfMonth ) {
+				        setDueDate( year, monthOfYear, dayOfMonth );
+			        }
 
-				Calendar cal = Calendar.getInstance();
-				try {
-					cal.setTime( dateFormat.parse( buttonDate.getText().toString() ) );
-				} catch ( ParseException e ) {
-					cal.setTime( new Date() );
-				}
+		        },
+		        currentDate.get( Calendar.YEAR ),
+		        currentDate.get( Calendar.MONTH ),
+		        currentDate.get( Calendar.DAY_OF_MONTH ) );
+		return dpd;
+	}
 
-				DatePickerDialog datePickerDialog = new DatePickerDialog(
-				        TaskActivity.this, new OnDateSetListener() {
-					        @Override
-					        public void onDateSet( DatePicker view, int year, int monthOfYear,
-					                int dayOfMonth ) {
-						        Calendar cal = Calendar.getInstance();
-						        cal.set( year, monthOfYear, dayOfMonth );
-						        buttonDate.setText( dateFormat.format( cal.getTime() ) );
-						        buttonDate.setTag( cal.getTime() );
-					        }
-				        },
-				        cal.get( Calendar.YEAR ),
-				        cal.get( Calendar.MONTH ),
-				        cal.get( Calendar.DAY_OF_MONTH ) );
-				datePickerDialog.setTitle( "Select a Date" );
-				datePickerDialog.show();
-			}
-		} );
+	private void setDueDate( int year, int monthOfYear, int dayOfMonth ) {
+		final Calendar dueDate = Calendar.getInstance();
+		dueDate.set( year, monthOfYear, dayOfMonth );
 
-		Bundle extras = getIntent().getExtras();
-		if ( null != extras ) {
-			activityMode = extras.getInt( EXTRA_MODE, MODE_ADD_TASK );
+		final Calendar currentDate = Calendar.getInstance();
+		currentDate.setTime( new Date() );
 
-			if ( MODE_EDIT_TASK == activityMode ) {
-				taskId = extras.getInt( EXTRA_TASK_ID, -1 );
-
-				if ( -1 == taskId ) {
-					Toast.makeText(
-					        getBaseContext(),
-					        R.string.error_task_edit_invalid_taskid,
-					        Toast.LENGTH_SHORT ).show();
-					finish();
-				}
-			}
+		if ( !dueDate.before( currentDate ) ) {
+			buttonDueDate.setText( dateFormat.format( dueDate.getTime() ) );
+			buttonDueDate.setTag( dueDate );
+		} else {
+			Toast.makeText( this, R.string.error_task_due_date_in_past, Toast.LENGTH_SHORT ).show();
 		}
 	}
 
 	protected void doOk() {
-		int priority = spinnerPriority.getSelectedItemPosition();
-		Date date = (Date) buttonDate.getTag();
-		int duration = Integer.parseInt( editDuration.getText().toString() ); // TODO: parse 12h, 12m....
-		String description = editDescription.getText().toString();
+		TaskEntry entry = new TaskEntry();
+		String title = editTitle.getText().toString();
 
-		ContentValues values = new ContentValues();
-		values.put( TaskContract.TaskEntry.PRIORITY, priority );
-		values.put( TaskContract.TaskEntry.DATE, date.getTime() );
-		values.put( TaskContract.TaskEntry.DURATION, duration );
-		values.put( TaskContract.TaskEntry.DESCRIPTION, description );
+		if ( TextUtils.isEmpty( title ) ) {
+			Toast.makeText( this, R.string.error_task_title_is_empty, Toast.LENGTH_SHORT ).show();
+			return;
+		}
 
-		ContentResolver resolver = getContentResolver();
-		resolver.insert( TaskContract.TaskEntry.CONTENT_URI, values );
+		entry.setTitle( title );
+
+		entry.setPriority( prioritiesArrays[(int) spinnerPriority.getSelectedItemId()] );
+
+		entry.setDue( (Calendar) buttonDueDate.getTag() );
+
+		String note = editNote.getText().toString();
+		if ( !TextUtils.isEmpty( note ) ) {
+			entry.setNote( note );
+		}
+
+		entry.setUpdated( Calendar.getInstance() );
+
+		long insertedId = TaskService.insert( dbHelper.getWritableDatabase(), entry );
+
+		Intent resultIntent = new Intent();
+		resultIntent.putExtra(
+		        EXTRA_ADDED_TASK_URI,
+		        ContentUris.withAppendedId(
+		                TaskContract.TaskEntry.CONTENT_URI,
+		                insertedId ) );
+		setResult( RESULT_OK, resultIntent );
 		finish();
 	}
 

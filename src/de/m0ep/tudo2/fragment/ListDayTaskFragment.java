@@ -26,17 +26,15 @@ public class ListDayTaskFragment extends ListFragment implements LoaderCallbacks
 
 	private static final String[] PROJECTION = {
 	        TaskEntry._ID,
-	        TaskEntry.STATE,
 	        TaskEntry.PRIORITY,
-	        TaskEntry.DATE,
-	        TaskEntry.DURATION,
-	        TaskEntry.DESCRIPTION
+	        TaskEntry.DUE,
+	        TaskEntry.TITLE,
 	};
 
 	private final String[] mappingFrom = {
 	        TaskEntry.PRIORITY,
-	        TaskEntry.DURATION,
-	        TaskEntry.DESCRIPTION
+	        TaskEntry.DUE,
+	        TaskEntry.TITLE
 	};
 
 	private final int[] mappingTo = {
@@ -47,7 +45,7 @@ public class ListDayTaskFragment extends ListFragment implements LoaderCallbacks
 
 	SimpleCursorAdapter cursorAdapter;
 
-	private static final String SELECTION = TaskEntry.DATE + " = ?";
+	private static final String SELECTION = TaskEntry.DUE + " = ?";
 
 	public ListDayTaskFragment() {
 		calendar = Calendar.getInstance();

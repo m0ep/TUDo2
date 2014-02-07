@@ -14,7 +14,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
-import de.m0ep.tudo2.provider.TaskContract.TaskEntry;
+import de.m0ep.tudo2.model.TaskEntry;
 
 public class TaskProvider extends ContentProvider {
 	private static final String TAG = TaskProvider.class.getName();
@@ -27,11 +27,12 @@ public class TaskProvider extends ContentProvider {
 	private static final int TASKS_ID = 2;
 
 	static {
-		URI_MATCHER.addURI( TaskContract.AUTHORITY, TaskEntry.TABLE_NAME, TASKS );
-		URI_MATCHER.addURI( TaskContract.AUTHORITY, TaskEntry.TABLE_NAME + "/#", TASKS_ID );
+		URI_MATCHER.addURI( TaskContract.AUTHORITY, TaskContract.TaskEntry.TABLENAME, TASKS );
+		URI_MATCHER.addURI( TaskContract.AUTHORITY, TaskContract.TaskEntry.TABLENAME + "/#",
+		        TASKS_ID );
 	}
 
-	private TaskSqliteHelper sqliteHelper;
+	private TaskSQLiteHelper sqliteHelper;
 
 	public static CharSequence formatDate( Date date ) {
 		return DateFormat.format( "yyyy-MM-dd", date );
@@ -39,7 +40,7 @@ public class TaskProvider extends ContentProvider {
 
 	@Override
 	public boolean onCreate() {
-		sqliteHelper = new TaskSqliteHelper( getContext() );
+		sqliteHelper = new TaskSQLiteHelper( getContext() );
 		return true;
 	}
 
@@ -48,10 +49,10 @@ public class TaskProvider extends ContentProvider {
 		switch ( URI_MATCHER.match( uri ) ) {
 			case TASKS:
 				return "android.cursor.dir/vnd." + TaskContract.AUTHORITY + "."
-				        + TaskContract.TaskEntry.TABLE_NAME;
+				        + TaskContract.TaskEntry.TABLENAME;
 			case TASKS_ID:
 				return "android.cursor.item/vnd." + TaskContract.AUTHORITY + "."
-				        + TaskContract.TaskEntry.TABLE_NAME;
+				        + TaskContract.TaskEntry.TABLENAME;
 			default:
 				return null;
 		}
@@ -60,36 +61,9 @@ public class TaskProvider extends ContentProvider {
 	@Override
 	public Uri insert( Uri uri, ContentValues values ) {
 		if ( TASKS == URI_MATCHER.match( uri ) ) {
-			if ( values.containsKey( TaskEntry._ID ) ) {
-				values.remove( TaskEntry._ID );
-				Log.d( TAG, "Remove _id from ContentValues" );
-			}
-
-			if ( values.containsKey( TaskEntry.DATE ) ) {
-				Object obj = values.get( TaskEntry.DATE );
-
-				if ( obj instanceof Date ) {
-					values.put( TaskEntry.DATE, (String) formatDate( (Date) obj ) );
-				} else if ( obj instanceof Long ) {
-					values.put( TaskEntry.DATE, (String) formatDate( new Date( (Long) obj ) ) );
-				}
-			}
-
-			if ( values.containsKey( TaskEntry.DURATION ) ) {
-				int duration = values.getAsInteger( TaskEntry.DURATION );
-				values.put( TaskEntry.DURATION, Math.max( 0, duration ) );
-			} else {
-				throw new IllegalArgumentException( "Missing duration" );
-			}
-
-			if ( !values.containsKey( TaskEntry.DESCRIPTION ) ) {
-				throw new IllegalArgumentException( "Missing description" );
-			}
-
 			SQLiteDatabase db = sqliteHelper.getWritableDatabase();
 
-			setDefaultContentValues( values );
-			long insertedId = db.insert( TaskEntry.TABLE_NAME, null, values );
+			long insertedId = db.insert( TaskContract.TaskEntry.TABLENAME, null, values );
 			return ContentUris.withAppendedId( uri, insertedId );
 		}
 
@@ -102,18 +76,18 @@ public class TaskProvider extends ContentProvider {
 		switch ( URI_MATCHER.match( uri ) ) {
 			case TASKS:
 				if ( TextUtils.isEmpty( sortOrder ) ) {
-					sortOrder = TaskEntry._ID + " ASC";
+					sortOrder = TaskContract.TaskEntry._ID + " ASC";
 				}
 				break;
 			case TASKS_ID:
-				selection += " " + TaskEntry._ID + " = " + uri.getLastPathSegment();
+				selection += " " + TaskContract.TaskEntry._ID + " = " + uri.getLastPathSegment();
 				break;
 			default:
 				throw new IllegalArgumentException( "Unknown uri: " + uri );
 		}
 
 		SQLiteDatabase db = sqliteHelper.getReadableDatabase();
-		return db.query( TaskEntry.TABLE_NAME, projection, selection, selectionArgs,
+		return db.query( TaskContract.TaskEntry.TABLENAME, projection, selection, selectionArgs,
 		        "", "", sortOrder );
 	}
 
@@ -124,28 +98,13 @@ public class TaskProvider extends ContentProvider {
 				return 0;
 			}
 
-			if ( values.containsKey( TaskEntry._ID ) ) {
-				values.remove( TaskEntry._ID );
+			if ( values.containsKey( TaskContract.TaskEntry._ID ) ) {
+				values.remove( TaskContract.TaskEntry._ID );
 				Log.d( TAG, "Remove _id from ContentValues" );
 			}
 
-			if ( values.containsKey( TaskEntry.DATE ) ) {
-				Object obj = values.get( TaskEntry.DATE );
-
-				if ( obj instanceof Date ) {
-					values.put( TaskEntry.DATE, (String) formatDate( (Date) obj ) );
-				} else if ( obj instanceof Long ) {
-					values.put( TaskEntry.DATE, (String) formatDate( new Date( (Long) obj ) ) );
-				}
-			}
-
-			if ( values.containsKey( TaskEntry.DURATION ) ) {
-				int duration = values.getAsInteger( TaskEntry.DURATION );
-				values.put( TaskEntry.DURATION, Math.max( 0, duration ) );
-			}
-
 			SQLiteDatabase db = sqliteHelper.getWritableDatabase();
-			return db.update( TaskEntry.TABLE_NAME, values, selection, selectionArgs );
+			return db.update( TaskContract.TaskEntry.TABLENAME, values, selection, selectionArgs );
 		}
 
 		throw new IllegalArgumentException( "Unknown uri: " + uri );
@@ -159,37 +118,28 @@ public class TaskProvider extends ContentProvider {
 			}
 
 			SQLiteDatabase db = sqliteHelper.getWritableDatabase();
-			db.delete( TaskEntry.TABLE_NAME, selection, selectionArgs );
+			db.delete( TaskContract.TaskEntry.TABLENAME, selection, selectionArgs );
 		}
 
 		throw new IllegalArgumentException( "Unknown uri: " + uri );
 	}
 
-	private void setDefaultContentValues( ContentValues values ) {
-		if ( !values.containsKey( TaskEntry.STATE ) ) {
-			values.put( TaskEntry.STATE, 0 );
-		}
+	public static final class TaskSQLiteHelper extends SQLiteOpenHelper {
+		private static final String SQL_CREATE_TABLE_TASKS = "CREATE TABLE IF NOT EXISTS " +
+		        TaskContract.TaskEntry.TABLENAME + " ( "
+		        + TaskContract.TaskEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+		        + TaskContract.TaskEntry.COMPLETED + " TEXT, "
+		        + TaskContract.TaskEntry.DELETED + " INTEGER DEFAULT 0, "
+		        + TaskContract.TaskEntry.DUE + " TEXT NOT NULL, "
+		        + TaskContract.TaskEntry.NOTE + " TEXT, "
+		        + TaskContract.TaskEntry.PRIORITY + " TEXT NOT NULL, "
+		        + TaskContract.TaskEntry.STATUS + " TEXT DEFAULT '"
+		        + TaskEntry.STATUS_NOT_COMPLETED + "', "
+		        + TaskContract.TaskEntry.TITLE + " TEXT NOT NULL, "
+		        + TaskContract.TaskEntry.UPDATED + " TEXT NOT NULL"
+		        + ");";
 
-		if ( !values.containsKey( TaskEntry.PRIORITY ) ) {
-			values.put( TaskEntry.PRIORITY, 0 );
-		}
-
-		if ( !values.containsKey( TaskEntry.DATE ) ) {
-			values.put( TaskEntry.DATE, (String) formatDate( new Date() ) );
-		}
-	}
-
-	private static final class TaskSqliteHelper extends SQLiteOpenHelper {
-		private static final String SQL_CREATE_TABLE_TASKS = "CREATE TABLE " +
-		        TaskEntry.TABLE_NAME + " ( "
-		        + TaskEntry._ID + " INTEGER PRIMARY KEY, "
-		        + TaskEntry.STATE + " INTEGER, "
-		        + TaskEntry.PRIORITY + " INTEGER, "
-		        + TaskEntry.DATE + " TEXT, "
-		        + TaskEntry.DURATION + " INTEGER, "
-		        + TaskEntry.DESCRIPTION + " TEXT );";
-
-		public TaskSqliteHelper( Context context ) {
+		public TaskSQLiteHelper( Context context ) {
 			super( context, DBNAME, null, 1 );
 		}
 
@@ -200,7 +150,7 @@ public class TaskProvider extends ContentProvider {
 
 		@Override
 		public void onUpgrade( SQLiteDatabase db, int oldVersion, int newVersion ) {
-			db.execSQL( "DROP TABLE IF EXISTS " + TaskEntry.TABLE_NAME );
+			db.execSQL( "DROP TABLE IF EXISTS " + TaskContract.TaskEntry.TABLENAME );
 			db.execSQL( SQL_CREATE_TABLE_TASKS );
 		}
 
