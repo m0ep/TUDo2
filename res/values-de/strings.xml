@@ -3,17 +3,18 @@
 
     <string name="action_settings">Einstellungen</string>
 
-    <string-array name="priorities">
+    <string-array name="array_priorities_userfriendly">
         <item>Sofort!</item>
         <item>Bald</item>
         <item>Irgendwann &#8230;</item>
     </string-array>
 
-    <string name="title_activity_task">Task</string>
-    <string name="label_priority">Priorität:</string>
-    <string name="label_date">Datum:</string>
-    <string name="label_duration">Dauer:</string>
-    <string name="hint_description">Beschreibung</string>
-    <string name="error_task_edit_invalid_taskid">The task you want to edit has a invalid id.</string>
+    <string name="label_priority">Priorität</string>
+    <string name="label_due_date">Stichtag</string>
+    <string name="label_parent_task">Unteraufgabe von</string>
+    <string name="hint_title">Titel</string>
+    <string name="hint_note">Notiz</string>
+    <string name="error_task_due_date_in_past">Wähle einen Stichtag von heute an</string>
+    <string name="error_task_title_is_empty">Lege einen Titel für die Aufgabe fest</string>
     
 </resources>

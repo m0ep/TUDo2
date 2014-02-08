@@ -15,15 +15,17 @@ public final class TaskContract {
 	public static abstract class TaskEntry implements BaseColumns {
 		public static final Uri CONTENT_URI = Uri.withAppendedPath(
 		        TaskContract.CONTENT_URI,
-		        TaskContract.TaskEntry.TABLE_NAME );
+		        TaskContract.TaskEntry.TABLENAME );
 
-		public static final String TABLE_NAME = "tasks";
+		public static final String TABLENAME = "tasks";
 
-		public static final String STATE = "state";
+		public static final String COMPLETED = "completed";
+		public static final String DELETED = "deleted";
+		public static final String DUE = "due";
+		public static final String NOTE = "note";
 		public static final String PRIORITY = "priority";
-		public static final String DATE = "date";
-		public static final String DURATION = "duration";
-		public static final String DESCRIPTION = "description";
-
+		public static final String STATUS = "status";
+		public static final String TITLE = "title";
+		public static final String UPDATED = "updated";
 	}
 }
