@@ -1,23 +1,47 @@
-<android.support.v4.view.ViewPager xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/pager"
+    android:id="@+id/wrapper"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".MainActivity" >
 
-    <!--
-    This title strip will display the currently visible page title, as well as the page
-    titles for adjacent pages.
-    -->
-
-    <android.support.v4.view.PagerTitleStrip
-        android:id="@+id/pager_title_strip"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
         android:background="#33b5e5"
-        android:paddingBottom="4dp"
-        android:paddingTop="4dp"
-        android:textColor="#fff" />
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp" >
 
-</android.support.v4.view.ViewPager>
+        <Button
+            android:id="@+id/button_prev_date"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/ic_navigation_prev_item_dark" />
+
+        <TextView
+            android:id="@+id/text_cur_date"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical|center_horizontal"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="#ffffff" />
+
+        <Button
+            android:id="@+id/button_next_date"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/ic_navigation_next_item_dark" />
+    </LinearLayout>
+    <include 
+        layout="@android:layout/list_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+        
+</LinearLayout>

@@ -1,108 +1,136 @@
 package de.m0ep.tudo2;
 
+import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Locale;
 
+import android.app.ListActivity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.view.ViewPager;
-import android.util.Log;
+import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.ViewGroup;
-import de.m0ep.tudo2.fragment.ListDayTaskFragment;
-import de.m0ep.tudo2.provider.TaskProvider;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
+import android.view.ViewConfiguration;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.TextView;
 
-public class MainActivity extends FragmentActivity {
-	private static final int PAGE_RIGHT = 2;
-	private static final int PAGE_LEFT = 0;
-	private static final int PAGE_CENTER = 1;
+public class MainActivity extends ListActivity {
 	private static final String TAG = MainActivity.class.getName();
-	/**
-	 * The {@link android.support.v4.view.PagerAdapter} that will provide
-	 * fragments for each of the sections. We use a
-	 * {@link android.support.v4.app.FragmentPagerAdapter} derivative, which
-	 * will keep every loaded fragment in memory. If this becomes too memory
-	 * intensive, it may be best to switch to a
-	 * {@link android.support.v4.app.FragmentStatePagerAdapter}.
-	 */
-	SectionsPagerAdapter mSectionsPagerAdapter;
 
-	/**
-	 * The {@link ViewPager} that will host the section contents.
-	 */
-	ViewPager mViewPager;
-	ListDayTaskFragment[] fragments = new ListDayTaskFragment[3];
+	private java.text.DateFormat dateFormat;
+	private Calendar mSelectedDate;
+
+	private Button buttonPrevDate;
+	private Button buttonNextDate;
+	private TextView textCurDate;
+	private ListView listTasks;
+
+	String[] data;
+
+	boolean isItemPressed;
+	boolean isSwiping;
+
+	OnTouchListener touchListener = new OnTouchListener() {
+		float downX;
+		int swipeSlop = -1;
+
+		@Override
+		public boolean onTouch( View v, MotionEvent event ) {
+			if ( 0 > swipeSlop ) {
+				swipeSlop = ViewConfiguration.get( MainActivity.this )
+				        .getScaledTouchSlop();
+			}
+
+			switch ( event.getAction() ) {
+				case MotionEvent.ACTION_DOWN:
+					if ( isItemPressed ) {
+						return false;
+					}
+
+					downX = event.getX();
+					isItemPressed = true;
+					break;
+				case MotionEvent.ACTION_MOVE:
+					float x = event.getX() + v.getTranslationX();
+					float deltaX = x - downX;
+
+					if ( 0 < deltaX ) {
+						if ( !isSwiping ) {
+							if ( swipeSlop < deltaX ) {
+								isSwiping = true;
+								listTasks.requestDisallowInterceptTouchEvent( true );
+							}
+						} else {
+							v.setTranslationX( deltaX );
+						}
+					}
+					break;
+				case MotionEvent.ACTION_UP:
+					if ( isSwiping ) {
+						v.setTranslationX( 0 );
+					}
+
+					isItemPressed = false;
+					isSwiping = false;
+					break;
+				case MotionEvent.ACTION_CANCEL:
+					v.setTranslationX( 0 );
+					isItemPressed = false;
+					isSwiping = false;
+					break;
+
+				default:
+					return false;
+			}
+
+			return true;
+		}
+	};
 
 	@Override
 	protected void onCreate( Bundle savedInstanceState ) {
 		super.onCreate( savedInstanceState );
 		setContentView( R.layout.activity_main );
 
-		// Create the adapter that will return a fragment for each of the three
-		// primary sections of the app.
-		mSectionsPagerAdapter = new SectionsPagerAdapter( getSupportFragmentManager() );
+		data = new String[20];
+		for ( int i = 0; i < data.length; i++ ) {
+			data[i] = Integer.toString( i );
+		}
 
-		// Set up the ViewPager with the sections adapter.
-		mViewPager = (ViewPager) findViewById( R.id.pager );
-		mViewPager.setAdapter( mSectionsPagerAdapter );
-		mViewPager.setCurrentItem( 1 );
+		buttonPrevDate = (Button) findViewById( R.id.button_prev_date );
+		buttonNextDate = (Button) findViewById( R.id.button_next_date );
+		textCurDate = (TextView) findViewById( R.id.text_cur_date );
+		listTasks = getListView();
 
-		Calendar curCal = Calendar.getInstance( Locale.getDefault() );
-		curCal.setTimeInMillis( System.currentTimeMillis() );
-		fragments[PAGE_CENTER] = new ListDayTaskFragment();
-		fragments[PAGE_CENTER].setCalendar( curCal );
+		StableArrayAdapter stableArrayAdapter = new StableArrayAdapter(
+		        this,
+		        android.R.layout.simple_list_item_1,
+		        Arrays.asList( Cheeses.sCheeseStrings ),
+		        touchListener );
 
-		Calendar prvCal = (Calendar) curCal.clone();
-		prvCal.add( Calendar.DAY_OF_YEAR, -1 );
-		fragments[PAGE_LEFT] = new ListDayTaskFragment();
-		fragments[PAGE_LEFT].setCalendar( prvCal );
+		setListAdapter( stableArrayAdapter );
 
-		Calendar nxtCal = (Calendar) curCal.clone();
-		nxtCal.add( Calendar.DAY_OF_YEAR, 1 );
-		fragments[PAGE_RIGHT] = new ListDayTaskFragment();
-		fragments[PAGE_RIGHT].setCalendar( nxtCal );
+		dateFormat = DateFormat.getDateFormat( this );
+		mSelectedDate = Calendar.getInstance();
+		textCurDate.setText( dateFormat.format( mSelectedDate.getTime() ) );
 
-		mViewPager.setOnPageChangeListener( new ViewPager.OnPageChangeListener() {
-			private int focusedPage;
-
+		buttonPrevDate.setOnClickListener( new OnClickListener() {
 			@Override
-			public void onPageSelected( int position ) {
-				focusedPage = position;
+			public void onClick( View v ) {
+				mSelectedDate.add( Calendar.DAY_OF_YEAR, -1 );
+				textCurDate.setText( dateFormat.format( mSelectedDate.getTime() ) );
 			}
+		} );
 
+		buttonNextDate.setOnClickListener( new OnClickListener() {
 			@Override
-			public void onPageScrolled( int arg0, float arg1, int arg2 ) {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void onPageScrollStateChanged( int state ) {
-				Log.v( TAG, "onPageScrollStateChanged(" + state + ")" );
-				if ( ViewPager.SCROLL_STATE_IDLE == state ) {
-					if ( 0 == focusedPage ) {
-						Calendar cal = (Calendar) fragments[PAGE_LEFT].getCalendar().clone();
-						cal.add( Calendar.DAY_OF_YEAR, -1 );
-
-						fragments[PAGE_RIGHT].setCalendar( fragments[PAGE_CENTER].getCalendar() );
-						fragments[PAGE_CENTER].setCalendar( fragments[PAGE_LEFT].getCalendar() );
-						fragments[PAGE_LEFT].setCalendar( cal );
-					} else if ( 2 == focusedPage ) {
-						Calendar cal = (Calendar) fragments[PAGE_RIGHT].getCalendar().clone();
-						cal.add( Calendar.DAY_OF_YEAR, 1 );
-
-						fragments[PAGE_LEFT].setCalendar( fragments[PAGE_CENTER].getCalendar() );
-						fragments[PAGE_CENTER].setCalendar( fragments[PAGE_RIGHT].getCalendar() );
-						fragments[PAGE_RIGHT].setCalendar( cal );
-					}
-
-					mViewPager.setCurrentItem( 1, false );
-				}
+			public void onClick( View v ) {
+				mSelectedDate.add( Calendar.DAY_OF_YEAR, 1 );
+				textCurDate.setText( dateFormat.format( mSelectedDate.getTime() ) );
 			}
 		} );
 	}
@@ -123,36 +151,5 @@ public class MainActivity extends FragmentActivity {
 		}
 
 		return super.onOptionsItemSelected( item );
-	}
-
-	/**
-	 * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
-	 * one of the sections/tabs/pages.
-	 */
-	public class SectionsPagerAdapter extends FragmentPagerAdapter {
-
-		public SectionsPagerAdapter( FragmentManager fm ) {
-			super( fm );
-		}
-
-		@Override
-		public Fragment getItem( int position ) {
-			return fragments[position];
-		}
-
-		@Override
-		public Object instantiateItem( ViewGroup container, int position ) {
-			return super.instantiateItem( container, position );
-		}
-
-		@Override
-		public int getCount() {
-			return 3;
-		}
-
-		@Override
-		public CharSequence getPageTitle( int position ) {
-			return TaskProvider.formatDate( fragments[position].getCalendar().getTime() );
-		}
 	}
 }
