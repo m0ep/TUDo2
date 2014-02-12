@@ -62,6 +62,7 @@ public class StableArrayAdapter extends ArrayAdapter<String> {
 		}
 
 		( (TextView) view.findViewById( R.id.text_title ) ).setText( getItem( position ) );
+		view.setTranslationX( 0 );
 
 		if ( view != convertView ) {
 			// Add touch listener to every new view to track swipe motion

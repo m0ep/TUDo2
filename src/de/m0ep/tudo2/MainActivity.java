@@ -1,10 +1,12 @@
 package de.m0ep.tudo2;
 
-import java.util.Arrays;
 import java.util.Calendar;
 
+import android.animation.Animator;
 import android.app.ListActivity;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.view.Menu;
@@ -17,6 +19,9 @@ import android.view.ViewConfiguration;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
+import de.m0ep.tudo2.provider.TaskContract;
+import de.m0ep.tudo2.provider.TaskProvider.TaskSQLiteHelper;
 
 public class MainActivity extends ListActivity {
 	private static final String TAG = MainActivity.class.getName();
@@ -28,6 +33,10 @@ public class MainActivity extends ListActivity {
 	private Button buttonNextDate;
 	private TextView textCurDate;
 	private ListView listTasks;
+	private StableArrayAdapter stableArrayAdapter;
+	private TaskCursorAdapter cursorAdapter;
+
+	private TaskSQLiteHelper dbHelper;
 
 	String[] data;
 
@@ -39,22 +48,23 @@ public class MainActivity extends ListActivity {
 		int swipeSlop = -1;
 
 		@Override
-		public boolean onTouch( View v, MotionEvent event ) {
+		public boolean onTouch( final View v, final MotionEvent event ) {
 			if ( 0 > swipeSlop ) {
 				swipeSlop = ViewConfiguration.get( MainActivity.this )
 				        .getScaledTouchSlop();
 			}
 
 			switch ( event.getAction() ) {
-				case MotionEvent.ACTION_DOWN:
+				case MotionEvent.ACTION_DOWN: {
 					if ( isItemPressed ) {
 						return false;
 					}
 
 					downX = event.getX();
 					isItemPressed = true;
+				}
 					break;
-				case MotionEvent.ACTION_MOVE:
+				case MotionEvent.ACTION_MOVE: {
 					float x = event.getX() + v.getTranslationX();
 					float deltaX = x - downX;
 
@@ -68,19 +78,59 @@ public class MainActivity extends ListActivity {
 							v.setTranslationX( deltaX );
 						}
 					}
+				}
 					break;
-				case MotionEvent.ACTION_UP:
+				case MotionEvent.ACTION_UP: {
 					if ( isSwiping ) {
-						v.setTranslationX( 0 );
+						float x = event.getX() + v.getTranslationX();
+						float deltaX = x - downX;
+						float endX;
+						float swipedFraction;
+						final boolean remove;
+						v.setEnabled( false );
+
+						if ( deltaX > v.getWidth() / 3 ) {
+							Toast.makeText(
+							        MainActivity.this,
+							        "move to next day",
+							        Toast.LENGTH_SHORT ).show();
+							endX = v.getWidth();
+							swipedFraction = 1 - ( deltaX / v.getWidth() );
+							remove = true;
+						} else {
+							endX = 0;
+							swipedFraction = deltaX / v.getWidth();
+							remove = false;
+						}
+
+						//int position = listTasks.getPositionForView( v );
+
+						v.animate()
+						        .translationX( endX )
+						        .setDuration( (long) ( swipedFraction * 250 ) )
+						        .setListener( new AnimatorListenerAdapter() {
+							        @Override
+							        public void onAnimationEnd( Animator animation ) {
+								        v.setTranslationX( 0 );
+								        if ( remove ) {
+
+								        } else {
+
+									        isSwiping = false;
+									        v.setEnabled( true );
+								        }
+							        }
+						        } );
 					}
 
 					isItemPressed = false;
-					isSwiping = false;
+				}
 					break;
-				case MotionEvent.ACTION_CANCEL:
+				case MotionEvent.ACTION_CANCEL: {
 					v.setTranslationX( 0 );
 					isItemPressed = false;
 					isSwiping = false;
+				}
 					break;
 
 				default:
@@ -106,13 +156,25 @@ public class MainActivity extends ListActivity {
 		textCurDate = (TextView) findViewById( R.id.text_cur_date );
 		listTasks = getListView();
 
-		StableArrayAdapter stableArrayAdapter = new StableArrayAdapter(
+		dbHelper = new TaskSQLiteHelper( this );
+		Cursor cursor = getTaskCursor();
+		cursorAdapter = new TaskCursorAdapter(
 		        this,
-		        android.R.layout.simple_list_item_1,
-		        Arrays.asList( Cheeses.sCheeseStrings ),
+		        cursor,
 		        touchListener );
+		setListAdapter( cursorAdapter );
 
-		setListAdapter( stableArrayAdapter );
+		//		final ArrayList<String> cheeseList = new ArrayList<String>();
+		//		for ( int i = 0; i < Cheeses.sCheeseStrings.length; ++i ) {
+		//			cheeseList.add( Cheeses.sCheeseStrings[i] );
+		//		}
+		//		stableArrayAdapter = new StableArrayAdapter(
+		//		        this,
+		//		        android.R.layout.simple_list_item_1,
+		//		        cheeseList,
+		//		        touchListener );
+		//
+		//		setListAdapter( stableArrayAdapter );
 
 		dateFormat = DateFormat.getDateFormat( this );
 		mSelectedDate = Calendar.getInstance();
@@ -133,6 +195,31 @@ public class MainActivity extends ListActivity {
 				textCurDate.setText( dateFormat.format( mSelectedDate.getTime() ) );
 			}
 		} );
+	}
+
+	private Cursor getTaskCursor() {
+		SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+		Cursor cursor = db.query(
+		        TaskContract.TaskEntry.TABLENAME,
+		        new String[] {
+		                TaskContract.TaskEntry._ID,
+		                TaskContract.TaskEntry.STATUS,
+		                TaskContract.TaskEntry.PRIORITY,
+		                TaskContract.TaskEntry.TITLE,
+		        },
+		        null,
+		        null,
+		        null,
+		        null,
+		        TaskContract.TaskEntry._ID + " ASC" );
+		return cursor;
+	}
+
+	@Override
+	protected void onResume() {
+		cursorAdapter.swapCursor( getTaskCursor() );
+		super.onResume();
 	}
 
 	@Override
