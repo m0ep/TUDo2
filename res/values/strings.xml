@@ -15,6 +15,9 @@
         <item>B</item>
         <item>C</item>
     </string-array>
+    
+    <string name="menu_delete">Delete</string>
+    
 
     <string name="title_activity_task">Task</string>
     <string name="label_priority">Priority</string>

@@ -1,11 +1,14 @@
 package de.m0ep.tudo2;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.CursorAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnTouchListener;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -14,12 +17,35 @@ import de.m0ep.tudo2.provider.TaskContract;
 public class TaskCursorAdapter extends CursorAdapter {
 
 	private final LayoutInflater inflater;
-	private final OnTouchListener touchListener;
+	private final HashSet<Integer> selectedPositionsSet;
 
-	public TaskCursorAdapter( Context context, Cursor c, OnTouchListener touchListener ) {
+	public TaskCursorAdapter( Context context, Cursor c ) {
 		super( context, c, true );
-		this.touchListener = touchListener;
 		this.inflater = (LayoutInflater) context.getSystemService( Context.LAYOUT_INFLATER_SERVICE );
+		this.selectedPositionsSet = new HashSet<Integer>();
+	}
+
+	public void addSelection( int position ) {
+		selectedPositionsSet.add( position );
+		notifyDataSetChanged();
+	}
+
+	public void removeSelection( int position ) {
+		selectedPositionsSet.remove( position );
+		notifyDataSetChanged();
+	}
+
+	public boolean isSelected( int position ) {
+		return selectedPositionsSet.contains( position );
+	}
+
+	public Set<Integer> getSelectedPositions() {
+		return Collections.unmodifiableSet( selectedPositionsSet );
+	}
+
+	public void clearSelection() {
+		selectedPositionsSet.clear();
+		notifyDataSetChanged();
 	}
 
 	@Override
@@ -39,14 +65,15 @@ public class TaskCursorAdapter extends CursorAdapter {
 	}
 
 	@Override
-	public View newView( Context context, Cursor cursor, ViewGroup parent ) {
+	public View newView( final Context context, Cursor cursor, ViewGroup parent ) {
 		View view = inflater.inflate( R.layout.list_task_item, parent, false );
 		ViewHolder vh = new ViewHolder();
+
 		vh.toggleStatus = (ToggleButton) view.findViewById( R.id.toggleStatus );
 		vh.textPriority = (TextView) view.findViewById( R.id.text_priority );
 		vh.textTitle = (TextView) view.findViewById( R.id.text_title );
+
 		view.setTag( vh );
-		view.setOnTouchListener( touchListener );
 
 		return view;
 	}
