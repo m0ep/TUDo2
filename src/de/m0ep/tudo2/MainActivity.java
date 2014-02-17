@@ -159,10 +159,10 @@ public class MainActivity
 
 	@Override
 	public boolean onActionItemClicked( ActionMode mode, MenuItem item ) {
+		long[] checkedItemIds = listView.getCheckedItemIds();
 		switch ( item.getItemId() ) {
-			case R.id.menu_delete:
-
-				for ( long id : listView.getCheckedItemIds() ) {
+			case R.id.menu_delete: {
+				for ( long id : checkedItemIds ) {
 					SQLiteDatabase db = dbHelper.getWritableDatabase();
 
 					ContentValues values = new ContentValues();
@@ -178,6 +178,26 @@ public class MainActivity
 
 				mode.finish();
 				return true;
+			}
+			case R.id.menu_edit: {
+				if ( 1 == checkedItemIds.length ) {
+					final long id = checkedItemIds[0];
+					mode.finish();
+
+					Intent intent = new Intent( this, TaskActivity.class );
+					intent.putExtra( TaskActivity.EXTRA_TASK_ACTIVITY_MODE,
+					        TaskActivity.MODE_EDIT_TASK );
+					intent.putExtra( TaskActivity.EXTRA_TASK_ID, id );
+					startActivity( intent );
+
+					return true;
+				} else {
+					Toast.makeText(
+					        this,
+					        R.string.error_loading_to_edit_failed,
+					        Toast.LENGTH_SHORT ).show();
+				}
+			}
 		}
 
 		return false;
@@ -203,7 +223,11 @@ public class MainActivity
 
 	@Override
 	public void onItemCheckedStateChanged( ActionMode mode, int position, long id, boolean checked ) {
-		mode.setTitle( listView.getCheckedItemCount() + " Selected" );
+		mode.setTitle( listView.getCheckedItemCount() + " Task(s) selected" );
+		final boolean canEdit = ( 1 == listView.getCheckedItemCount() );
+		final MenuItem menuItemEdit = mode.getMenu().findItem( R.id.menu_edit );
+		menuItemEdit.setVisible( canEdit );
+		menuItemEdit.setEnabled( canEdit );
 	}
 
 	@Override
@@ -254,7 +278,6 @@ public class MainActivity
 
 	@Override
 	public void onSelectTask( int position ) {
-		Log.v( TAG, Integer.toString( position ) );
 		listView.setItemChecked( position, !listView.isItemChecked( position ) );
 		listView.performHapticFeedback( HapticFeedbackConstants.LONG_PRESS );
 	}

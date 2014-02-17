@@ -17,6 +17,7 @@
     </string-array>
     
     <string name="menu_delete">Delete</string>
+    <string name="menu_edit">Edit</string>
     
 
     <string name="title_activity_task">Task</string>
@@ -25,7 +26,9 @@
     <string name="label_parent_task">Subtask of</string>
     <string name="hint_title">Title</string>
     <string name="hint_note">Note</string>
+    
     <string name="error_task_due_date_in_past">Select a due date from now on</string>
     <string name="error_task_title_is_empty">Please fill in a title for the Task</string>
+    <string name="error_loading_to_edit_failed">"Can't load task to edit"</string>
     
 </resources>
