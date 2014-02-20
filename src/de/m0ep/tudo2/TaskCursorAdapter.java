@@ -1,9 +1,5 @@
 package de.m0ep.tudo2;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.CursorAdapter;
@@ -17,35 +13,10 @@ import de.m0ep.tudo2.provider.TaskContract;
 public class TaskCursorAdapter extends CursorAdapter {
 
 	private final LayoutInflater inflater;
-	private final HashSet<Integer> selectedPositionsSet;
 
 	public TaskCursorAdapter( Context context, Cursor c ) {
 		super( context, c, true );
 		this.inflater = (LayoutInflater) context.getSystemService( Context.LAYOUT_INFLATER_SERVICE );
-		this.selectedPositionsSet = new HashSet<Integer>();
-	}
-
-	public void addSelection( int position ) {
-		selectedPositionsSet.add( position );
-		notifyDataSetChanged();
-	}
-
-	public void removeSelection( int position ) {
-		selectedPositionsSet.remove( position );
-		notifyDataSetChanged();
-	}
-
-	public boolean isSelected( int position ) {
-		return selectedPositionsSet.contains( position );
-	}
-
-	public Set<Integer> getSelectedPositions() {
-		return Collections.unmodifiableSet( selectedPositionsSet );
-	}
-
-	public void clearSelection() {
-		selectedPositionsSet.clear();
-		notifyDataSetChanged();
 	}
 
 	@Override

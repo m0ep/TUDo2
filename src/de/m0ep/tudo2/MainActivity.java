@@ -19,6 +19,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AbsListView.MultiChoiceModeListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -93,6 +95,14 @@ public class MainActivity
 		listView.setMultiChoiceModeListener( this );
 		listView.setSelector( R.drawable.task_item_bg_selector );
 
+		listView.setOnItemLongClickListener( new OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick( AdapterView<?> arg0, View arg1, int arg2, long arg3 ) {
+				listView.setItemChecked( arg2, !listView.isItemChecked( arg2 ) );
+				return true;
+			}
+		} );
 	}
 
 	static final String query = "SELECT " + TaskContract.TaskEntry._ID + ", "
@@ -162,19 +172,18 @@ public class MainActivity
 		long[] checkedItemIds = listView.getCheckedItemIds();
 		switch ( item.getItemId() ) {
 			case R.id.menu_delete: {
+				SQLiteDatabase db = dbHelper.getWritableDatabase();
+				ContentValues values = new ContentValues();
+				values.put( TaskContract.TaskEntry.DELETED, 1 );
+
 				for ( long id : checkedItemIds ) {
-					SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-					ContentValues values = new ContentValues();
-					values.put( TaskContract.TaskEntry.DELETED, 1 );
-
 					db.update( TaskContract.TaskEntry.TABLENAME,
 					        values,
 					        TaskContract.TaskEntry._ID + " = ?",
 					        new String[] { Long.toString( id ) } );
-
-					cursorAdapter.swapCursor( getTaskCursor() );
 				}
+
+				cursorAdapter.swapCursor( getTaskCursor() );
 
 				mode.finish();
 				return true;
