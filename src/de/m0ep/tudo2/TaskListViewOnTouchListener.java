@@ -5,7 +5,10 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.graphics.Rect;
+import android.util.Log;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
+import android.view.SoundEffectConstants;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.ViewConfiguration;
@@ -36,6 +39,8 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 	private boolean swipeEnabled = true;
 
 	private final TaskTouchActionCallback callback;
+
+	private CheckForLongClick pendingCheckForLongClick;
 
 	public static interface TaskTouchActionCallback {
 		public void onMoveTask( int postition );
@@ -112,6 +117,15 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 					downViewPosition = listView.getPositionForView( downView );
 				}
 
+				if ( null != pendingCheckForLongClick ) {
+					listView.removeCallbacks( pendingCheckForLongClick );
+				}
+
+				pendingCheckForLongClick = new CheckForLongClick();
+				listView.postDelayed(
+				        pendingCheckForLongClick,
+				        ViewConfiguration.getLongPressTimeout() );
+
 				return false;
 			}
 			case MotionEvent.ACTION_CANCEL: {
@@ -143,28 +157,14 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 				float deltaX = event.getRawX() - downX;
 				float deltaY = event.getRawY() - downY;
 
+				Log.v( TAG, "move " + deltaX + " " + deltaY );
+
 				if ( swipeEnabled
 				        && 0 < deltaX
 				        && deltaX > touchSlop
 				        && deltaX > deltaY ) {
 					isSwiping = true;
 					listView.requestDisallowInterceptTouchEvent( true );
-				}
-
-				if ( deltaX < touchSlop && deltaY < touchSlop ) {
-					float deltaTime = event.getEventTime() - event.getDownTime();
-					if ( deltaTime > longPressTimeout ) {
-						if ( null != callback ) {
-							callback.onSelectTask( listView.getPositionForView( downView ) );
-						}
-
-						downX = 0;
-						downY = 0;
-						downView = null;
-						downViewPosition = ListView.INVALID_POSITION;
-						isSwiping = false;
-						return true;
-					}
 				}
 
 				if ( isSwiping && 0 < deltaX ) {
@@ -248,5 +248,25 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 		} );
 
 		animator.start();
+	}
+
+	class CheckForLongClick implements Runnable {
+		@Override
+		public void run() {
+			if ( !isSwiping && null != downView ) {
+				if ( null != callback ) {
+					callback.onSelectTask( listView.getPositionForView( downView ) );
+				}
+
+				downX = 0;
+				downY = 0;
+				downView = null;
+				downViewPosition = ListView.INVALID_POSITION;
+				isSwiping = false;
+				listView.performHapticFeedback( HapticFeedbackConstants.LONG_PRESS );
+				listView.playSoundEffect( SoundEffectConstants.CLICK );
+				pendingCheckForLongClick = null;
+			}
+		}
 	}
 }

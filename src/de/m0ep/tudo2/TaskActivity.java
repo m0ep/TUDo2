@@ -119,6 +119,10 @@ public class TaskActivity extends Activity {
 		if ( !dataLoadedToViews ) {
 			setInstanceStateToDefault();
 		}
+
+		setTitle( ( MODE_EDIT_TASK == activityMode )
+		        ? R.string.title_edit_task
+		        : R.string.title_add_task );
 	}
 
 	@Override
@@ -139,52 +143,6 @@ public class TaskActivity extends Activity {
 	protected void onRestoreInstanceState( Bundle savedInstanceState ) {
 		restoreInstanceState( savedInstanceState );
 		super.onRestoreInstanceState( savedInstanceState );
-	}
-
-	private boolean loadTaskToEdit( long id ) {
-		SQLiteDatabase db = dbHelper.getReadableDatabase();
-		Cursor cursor = db.query( TaskContract.TaskEntry.TABLENAME,
-		        new String[] {
-		                TaskContract.TaskEntry._ID,
-		                TaskContract.TaskEntry.TITLE,
-		                TaskContract.TaskEntry.NOTE,
-		                TaskContract.TaskEntry.PRIORITY,
-		                TaskContract.TaskEntry.DUE
-		        },
-		        TaskContract.TaskEntry._ID + " = ?",
-		        new String[] { Long.toString( id ) },
-		        null, null, null );
-
-		if ( cursor.moveToFirst() ) {
-			int titleIndex = cursor.getColumnIndex( TaskContract.TaskEntry.TITLE );
-			int noteIndex = cursor.getColumnIndex( TaskContract.TaskEntry.NOTE );
-			int priorityIndex = cursor.getColumnIndex( TaskContract.TaskEntry.PRIORITY );
-			int dueIndex = cursor.getColumnIndex( TaskContract.TaskEntry.DUE );
-
-			String title = cursor.getString( titleIndex );
-			String note = cursor.getString( noteIndex );
-			String priority = cursor.getString( priorityIndex );
-			String due = cursor.getString( dueIndex );
-
-			editTitle.setText( title );
-			editNote.setText( note );
-
-			for ( int i = 0; i < prioritiesArray.length; i++ ) {
-				if ( prioritiesArray[i].equals( priority ) ) {
-					spinnerPriority.setSelection( i );
-					break;
-				}
-			}
-
-			Calendar dueCalendar = Calendar.getInstance();
-			dueCalendar.setTime( TaskService.parseDateISO8601( due ) );
-			buttonDueDate.setText( dateFormat.format( dueCalendar.getTime() ) );
-			buttonDueDate.setTag( dueCalendar );
-
-			return true;
-		}
-
-		return false;
 	}
 
 	private void setInstanceStateToDefault() {
@@ -217,6 +175,52 @@ public class TaskActivity extends Activity {
 			activityMode = savedInstanceState.getInt( STATE_KEY_TASKACTIVITY_MODE, MODE_ADD_TASK );
 			taskToEditId = savedInstanceState.getLong( STATE_KEY_TASK_ID_TO_EDIT, -1 );
 		}
+	}
+
+	private boolean loadTaskToEdit( long id ) {
+		SQLiteDatabase db = dbHelper.getReadableDatabase();
+		Cursor cursor = db.query( TaskContract.TaskEntry.TABLENAME,
+		        new String[] {
+		                TaskContract.TaskEntry._ID,
+		                TaskContract.TaskEntry.TITLE,
+		                TaskContract.TaskEntry.NOTE,
+		                TaskContract.TaskEntry.PRIORITY,
+		                TaskContract.TaskEntry.DUE
+		        },
+		        TaskContract.TaskEntry._ID + " = ?",
+		        new String[] { Long.toString( id ) },
+		        null, null, null );
+	
+		if ( cursor.moveToFirst() ) {
+			int titleIndex = cursor.getColumnIndex( TaskContract.TaskEntry.TITLE );
+			int noteIndex = cursor.getColumnIndex( TaskContract.TaskEntry.NOTE );
+			int priorityIndex = cursor.getColumnIndex( TaskContract.TaskEntry.PRIORITY );
+			int dueIndex = cursor.getColumnIndex( TaskContract.TaskEntry.DUE );
+	
+			String title = cursor.getString( titleIndex );
+			String note = cursor.getString( noteIndex );
+			String priority = cursor.getString( priorityIndex );
+			String due = cursor.getString( dueIndex );
+	
+			editTitle.setText( title );
+			editNote.setText( note );
+	
+			for ( int i = 0; i < prioritiesArray.length; i++ ) {
+				if ( prioritiesArray[i].equals( priority ) ) {
+					spinnerPriority.setSelection( i );
+					break;
+				}
+			}
+	
+			Calendar dueCalendar = Calendar.getInstance();
+			dueCalendar.setTime( TaskService.parseDateISO8601( due ) );
+			buttonDueDate.setText( dateFormat.format( dueCalendar.getTime() ) );
+			buttonDueDate.setTag( dueCalendar );
+	
+			return true;
+		}
+	
+		return false;
 	}
 
 	private DatePickerDialog createDatePickerDialog() {
