@@ -10,12 +10,12 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 import de.m0ep.tudo2.provider.TaskContract;
 
-public class TaskCursorAdapter extends CursorAdapter {
+public class DailyTaskCursorAdapter extends CursorAdapter {
 
 	private final LayoutInflater inflater;
 
-	public TaskCursorAdapter( Context context, Cursor c ) {
-		super( context, c, true );
+	public DailyTaskCursorAdapter( Context context, Cursor c ) {
+		super( context, c, 0 );
 		this.inflater = (LayoutInflater) context.getSystemService( Context.LAYOUT_INFLATER_SERVICE );
 	}
 

@@ -5,7 +5,6 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.SoundEffectConstants;
@@ -17,24 +16,19 @@ import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.ListView;
 
-public class TaskListViewOnTouchListener implements OnTouchListener {
-	public static final String TAG = TaskListViewOnTouchListener.class.getName();
-
+public class TaskListOnTouchListener implements OnTouchListener {
 	private float downX;
 	private float downY;
 	private boolean isSwiping;
 
 	private final int touchSlop;
-	private final int longPressTimeout;
 	private final ViewConfiguration vc;
 	private final int animationTime;
 	private View downView;
-	private int downViewPosition;
 
 	private boolean enable = true;
 
 	private final ListView listView;
-	private final TaskCursorAdapter taskCursorAdapter;
 
 	private boolean swipeEnabled = true;
 
@@ -48,16 +42,13 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 		public void onSelectTask( int postition );
 	}
 
-	public TaskListViewOnTouchListener( ListView listView, TaskTouchActionCallback callback ) {
+	public TaskListOnTouchListener( ListView listView, TaskTouchActionCallback callback ) {
 		this.listView = listView;
 		this.callback = callback;
 		this.vc = ViewConfiguration.get( listView.getContext() );
 		this.touchSlop = vc.getScaledTouchSlop();
 		this.animationTime = listView.getContext().getResources().getInteger(
 		        android.R.integer.config_mediumAnimTime );
-		this.longPressTimeout = ViewConfiguration.getLongPressTimeout();
-
-		this.taskCursorAdapter = (TaskCursorAdapter) listView.getAdapter();
 	}
 
 	public void setEnable( boolean enable ) {
@@ -114,7 +105,6 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 				if ( null != downView ) {
 					downX = event.getRawX();
 					downY = event.getRawY();
-					downViewPosition = listView.getPositionForView( downView );
 				}
 
 				if ( null != pendingCheckForLongClick ) {
@@ -144,7 +134,6 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 				downX = 0;
 				downY = 0;
 				downView = null;
-				downViewPosition = ListView.INVALID_POSITION;
 				isSwiping = false;
 				break;
 			}
@@ -156,8 +145,6 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 
 				float deltaX = event.getRawX() - downX;
 				float deltaY = event.getRawY() - downY;
-
-				Log.v( TAG, "move " + deltaX + " " + deltaY );
 
 				if ( swipeEnabled
 				        && 0 < deltaX
@@ -207,7 +194,6 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 				downX = 0;
 				downY = 0;
 				downView = null;
-				downViewPosition = ListView.INVALID_POSITION;
 				isSwiping = false;
 				break;
 			}
@@ -261,7 +247,6 @@ public class TaskListViewOnTouchListener implements OnTouchListener {
 				downX = 0;
 				downY = 0;
 				downView = null;
-				downViewPosition = ListView.INVALID_POSITION;
 				isSwiping = false;
 				listView.performHapticFeedback( HapticFeedbackConstants.LONG_PRESS );
 				listView.playSoundEffect( SoundEffectConstants.CLICK );

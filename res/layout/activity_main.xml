@@ -1,54 +1,15 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/wrapper"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".MainActivity" >
-
-    <LinearLayout
+    
+    <fragment
+        android:id="@+id/daily_task_fragment"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@android:color/holo_blue_light"
-        android:paddingLeft="8dp"
-        android:paddingRight="8dp" >
+        android:layout_height="match_parent"
+        class="de.m0ep.tudo2.DailyTaskFragment"
+        tools:layout="@layout/daily_task_layout" />
 
-        <Button
-            android:id="@+id/button_prev_date"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="8dp"
-            android:background="@drawable/ic_navigation_prev_item_dark" />
-
-        <TextView
-            android:id="@+id/text_cur_date"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_gravity="center_vertical|center_horizontal"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
-            android:gravity="center_vertical|center_horizontal"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:textColor="#ffffff" />
-
-        <Button
-            android:id="@+id/button_next_date"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="8dp"
-            android:background="@drawable/ic_navigation_next_item_dark" />
-    </LinearLayout>
-
-    <View
-        android:id="@+id/devider"
-        android:layout_width="wrap_content"
-        android:layout_height="1dp"
-        android:background="@android:color/background_light" />
-
-    <include 
-        layout="@android:layout/list_content"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
-        
 </LinearLayout>
