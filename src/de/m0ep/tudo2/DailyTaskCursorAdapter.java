@@ -37,7 +37,7 @@ public class DailyTaskCursorAdapter extends CursorAdapter {
 
 	@Override
 	public View newView( final Context context, Cursor cursor, ViewGroup parent ) {
-		View view = inflater.inflate( R.layout.list_task_item, parent, false );
+		View view = inflater.inflate( R.layout.daily_task_list_item, parent, false );
 		ViewHolder vh = new ViewHolder();
 
 		vh.toggleStatus = (ToggleButton) view.findViewById( R.id.toggleStatus );

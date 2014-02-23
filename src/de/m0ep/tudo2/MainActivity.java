@@ -3,19 +3,15 @@ package de.m0ep.tudo2;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 public class MainActivity extends FragmentActivity {
-	private static final String TAG = MainActivity.class.getName();
 
 	@Override
 	protected void onCreate( Bundle savedInstanceState ) {
 		super.onCreate( savedInstanceState );
 		setContentView( R.layout.activity_main );
-
-		Log.v( TAG, "onCreate finished" );
 	}
 
 	@Override
