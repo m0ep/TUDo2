@@ -5,12 +5,11 @@ import java.util.Calendar;
 
 import de.m0ep.tudo2.ObjectUtils;
 
-public class TaskEntry implements Serializable {
+public class TaskModel implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	public static final String STATUS_NOT_COMPLETED = "not_completed";
 	public static final String STATUS_COMPLETED = "completed";
-	public static final String STATUS_MOVED = "moved";
 
 	private long id;
 
@@ -121,7 +120,7 @@ public class TaskEntry implements Serializable {
 			return false;
 		}
 
-		TaskEntry other = (TaskEntry) obj;
+		TaskModel other = (TaskModel) obj;
 
 		return ObjectUtils.equals( this.completed, other.completed )
 		        && ObjectUtils.equals( this.deleted, other.deleted )

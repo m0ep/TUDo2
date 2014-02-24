@@ -28,7 +28,7 @@ import de.m0ep.tudo2.TaskListOnTouchListener.TaskTouchActionCallback;
 import de.m0ep.tudo2.model.TaskService;
 import de.m0ep.tudo2.provider.TaskContract;
 import de.m0ep.tudo2.provider.TaskContract.TaskEntry;
-import de.m0ep.tudo2.provider.TaskProvider.TaskSQLiteHelper;
+import de.m0ep.tudo2.provider.TaskSQLiteHelper;
 
 public class DailyTaskFragment
         extends ListFragment
@@ -165,14 +165,14 @@ public class DailyTaskFragment
 
 			String newDueString = TaskService.formatDateISO8601( cal.getTime() );
 			ContentValues values = new ContentValues();
-			values.put( TaskContract.TaskEntry.DUE, newDueString );
+			values.put( TaskEntry.DUE, newDueString );
 
-			int rowsAffected = db.update( TaskContract.TaskEntry.TABLENAME,
+			int res = db.update( TaskEntry.TABLENAME,
 			        values,
-			        TaskContract.TaskEntry._ID + " = ?",
+			        TaskEntry._ID + " = ?",
 			        new String[] { Long.toString( id ) } );
 
-			if ( 0 < rowsAffected ) {
+			if ( 0 < res ) {
 				Toast.makeText(
 				        getActivity(),
 				        "Moved '" + titleString + "' to the next day",

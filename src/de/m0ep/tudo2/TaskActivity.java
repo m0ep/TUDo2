@@ -19,10 +19,10 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
-import de.m0ep.tudo2.model.TaskEntry;
+import de.m0ep.tudo2.model.TaskModel;
 import de.m0ep.tudo2.model.TaskService;
 import de.m0ep.tudo2.provider.TaskContract;
-import de.m0ep.tudo2.provider.TaskProvider.TaskSQLiteHelper;
+import de.m0ep.tudo2.provider.TaskSQLiteHelper;
 
 public class TaskActivity extends Activity {
 	public static final String TAG = TaskActivity.class.getName();
@@ -246,7 +246,7 @@ public class TaskActivity extends Activity {
 	}
 
 	private void storeData() {
-		TaskEntry entry = new TaskEntry();
+		TaskModel entry = new TaskModel();
 		String title = editTitle.getText().toString();
 
 		if ( TextUtils.isEmpty( title ) ) {

@@ -13,22 +13,22 @@ import de.m0ep.tudo2.provider.TaskContract;
 
 public class TaskService {
 	private static final String TAG = TaskService.class.getName();
-	private static final String DATETIME_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ssz";
-	private static final SimpleDateFormat DATETIME_FORMAT =
-	        new SimpleDateFormat( DATETIME_FORMAT_STRING, Locale.getDefault() );
-	private static final String DATE_FORMAT_STRING = "yyyy-MM-dd";
-	private static final SimpleDateFormat DATE_FORMAT =
-	        new SimpleDateFormat( DATE_FORMAT_STRING, Locale.getDefault() );
+	private static final String FORMAT_STRING_DATETIME = "yyyy-MM-dd'T'HH:mm:ssz";
+	private static final SimpleDateFormat FORMAT_DATETIME =
+	        new SimpleDateFormat( FORMAT_STRING_DATETIME, Locale.getDefault() );
+	private static final String FORMAT_STRING_DATE = "yyyy-MM-dd";
+	private static final SimpleDateFormat FORMAT_DATE =
+	        new SimpleDateFormat( FORMAT_STRING_DATE, Locale.getDefault() );
 
 	/**
-	 * Creates a new {@link TaskEntry} from the values of a
+	 * Creates a new {@link TaskModel} from the values of a
 	 * {@link ContentValues} object.
 	 * 
 	 * @param values
-	 * @return {@link TaskEntry} object.
+	 * @return {@link TaskModel} object.
 	 */
-	static public TaskEntry createFrom( ContentValues values ) {
-		TaskEntry result = new TaskEntry();
+	static public TaskModel createFrom( ContentValues values ) {
+		TaskModel result = new TaskModel();
 
 		if ( values.containsKey( TaskContract.TaskEntry.COMPLETED ) ) {
 			Calendar completed = readDateTimeCalendar( TaskContract.TaskEntry.COMPLETED, values );
@@ -72,7 +72,7 @@ public class TaskService {
 		return result;
 	}
 
-	static public ContentValues convertToContentValues( TaskEntry entry ) {
+	static public ContentValues convertToContentValues( TaskModel entry ) {
 		ContentValues result = new ContentValues();
 
 		result.put( TaskContract.TaskEntry._ID,
@@ -111,7 +111,7 @@ public class TaskService {
 		return result;
 	}
 
-	static public long insert( SQLiteDatabase db, TaskEntry entry ) {
+	static public long insert( SQLiteDatabase db, TaskModel entry ) {
 		ContentValues values = convertToContentValues( entry );
 		values.remove( TaskContract.TaskEntry._ID );
 
@@ -123,17 +123,10 @@ public class TaskService {
 
 	public static int update(
 	        SQLiteDatabase db,
-	        TaskEntry entry ) {
+	        TaskModel entry ) {
 		return db.update(
 		        TaskContract.TaskEntry.TABLENAME,
 		        convertToContentValues( entry ),
-		        "_id = ?",
-		        new String[] { Long.toString( entry.getId() ) } );
-	}
-
-	public static void delete( SQLiteDatabase db, TaskEntry entry ) {
-		db.delete(
-		        TaskContract.TaskEntry.TABLENAME,
 		        "_id = ?",
 		        new String[] { Long.toString( entry.getId() ) } );
 	}
@@ -172,7 +165,7 @@ public class TaskService {
 
 	public static Date parseDateTimeISO8601( String string ) {
 		try {
-			return DATETIME_FORMAT.parse( string );
+			return FORMAT_DATETIME.parse( string );
 		} catch ( ParseException e ) {
 			Log.w( TAG, e );
 			return null;
@@ -180,12 +173,12 @@ public class TaskService {
 	}
 
 	public static String formatDateTimeISO8601( Date date ) {
-		return DATETIME_FORMAT.format( date );
+		return FORMAT_DATETIME.format( date );
 	}
 
 	public static Date parseDateISO8601( String string ) {
 		try {
-			return DATE_FORMAT.parse( string );
+			return FORMAT_DATE.parse( string );
 		} catch ( ParseException e ) {
 			Log.w( TAG, e );
 			return null;
@@ -193,6 +186,6 @@ public class TaskService {
 	}
 
 	public static String formatDateISO8601( Date date ) {
-		return DATE_FORMAT.format( date );
+		return FORMAT_DATE.format( date );
 	}
 }
