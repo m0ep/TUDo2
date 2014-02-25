@@ -45,7 +45,8 @@ public class DailyTaskListFragment
 	        Task.DUE,
 	        Task.PRIORITY,
 	        Task.STATUS,
-	        Task.TITLE
+	        Task.TITLE,
+	        Task.NOTE
 	};
 	private static final String QUERY_SELECTION = Task.IS_DELETED + " = 0 AND " + Task.DUE + " = ?";
 	private static final String QUERY_ORDER_BY = Task._ID + " ASC";

@@ -9,16 +9,18 @@ import android.database.Cursor;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.support.v4.widget.CursorAdapter;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.LinearLayout;
+import android.widget.LinearLayout.LayoutParams;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 import de.m0ep.tudo2.data.TaskConstants;
 import de.m0ep.tudo2.data.TaskContract.Task;
-import de.m0ep.tudo2.data.TaskContract.TaskColumns;
 
 public class TaskCursorAdapter extends CursorAdapter {
 	private final LayoutInflater inflater;
@@ -30,13 +32,15 @@ public class TaskCursorAdapter extends CursorAdapter {
 
 	@Override
 	public void bindView( View view, Context context, Cursor cursor ) {
-		int statusIndex = cursor.getColumnIndex( TaskColumns.STATUS );
-		int priorityIndex = cursor.getColumnIndex( TaskColumns.PRIORITY );
-		int titleIndex = cursor.getColumnIndex( TaskColumns.TITLE );
+		int statusIndex = cursor.getColumnIndex( Task.STATUS );
+		int priorityIndex = cursor.getColumnIndex( Task.PRIORITY );
+		int titleIndex = cursor.getColumnIndex( Task.TITLE );
+		int noteIndex = cursor.getColumnIndex( Task.NOTE );
 
 		String status = cursor.getString( statusIndex );
 		String priority = cursor.getString( priorityIndex );
 		String title = cursor.getString( titleIndex );
+		String note = cursor.getString( noteIndex );
 
 		boolean completed = TaskConstants.STATUS_COMPLETED.equals( status );
 
@@ -46,8 +50,25 @@ public class TaskCursorAdapter extends CursorAdapter {
 		vh.textPriority.setText( priority );
 		vh.textTitle.setText( title );
 
+		if ( !TextUtils.isEmpty( note ) ) {
+			vh.textNote.setVisibility( View.VISIBLE );
+			vh.textNote.setText( note );
+
+			LinearLayout.LayoutParams layoutParams = (LayoutParams) vh.textTitle.getLayoutParams();
+			layoutParams.weight = 0;
+			vh.textTitle.setLayoutParams( layoutParams );
+		} else {
+			vh.textNote.setVisibility( View.GONE );
+			vh.textNote.setText( "" );
+
+			LinearLayout.LayoutParams layoutParams = (LayoutParams) vh.textTitle.getLayoutParams();
+			layoutParams.weight = 1;
+			vh.textTitle.setLayoutParams( layoutParams );
+		}
+
 		updateVisualCheckStatus( vh.textPriority, completed );
 		updateVisualCheckStatus( vh.textTitle, completed );
+		updateVisualCheckStatus( vh.textNote, completed );
 
 		vh.toggleStatus.setOnCheckedChangeListener( new OnCheckedChangeListener() {
 			@Override
@@ -68,6 +89,7 @@ public class TaskCursorAdapter extends CursorAdapter {
 				if ( 0 < rowsUpdated ) {
 					updateVisualCheckStatus( vh.textPriority, isChecked );
 					updateVisualCheckStatus( vh.textTitle, isChecked );
+					updateVisualCheckStatus( vh.textNote, isChecked );
 				}
 			}
 		} );
@@ -88,9 +110,10 @@ public class TaskCursorAdapter extends CursorAdapter {
 		View view = inflater.inflate( R.layout.daily_task_list_item, parent, false );
 		ViewHolder vh = new ViewHolder();
 
-		vh.toggleStatus = (ToggleButton) view.findViewById( R.id.toggleStatus );
-		vh.textPriority = (TextView) view.findViewById( R.id.text_priority );
-		vh.textTitle = (TextView) view.findViewById( R.id.text_title );
+		vh.toggleStatus = (ToggleButton) view.findViewById( R.id.status );
+		vh.textPriority = (TextView) view.findViewById( R.id.priority );
+		vh.textTitle = (TextView) view.findViewById( R.id.title );
+		vh.textNote = (TextView) view.findViewById( R.id.note );
 
 		view.setTag( vh );
 
@@ -101,5 +124,6 @@ public class TaskCursorAdapter extends CursorAdapter {
 		ToggleButton toggleStatus;
 		TextView textPriority;
 		TextView textTitle;
+		TextView textNote;
 	}
 }
