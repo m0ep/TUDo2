@@ -2,11 +2,12 @@ package de.m0ep.tudo2;
 
 import java.util.Date;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Paint;
+import android.net.Uri;
 import android.support.v4.widget.CursorAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,33 +16,29 @@ import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.TextView;
 import android.widget.ToggleButton;
-import de.m0ep.tudo2.model.TaskModel;
-import de.m0ep.tudo2.model.TaskService;
-import de.m0ep.tudo2.provider.TaskContract.TaskEntry;
-import de.m0ep.tudo2.provider.TaskSQLiteHelper;
+import de.m0ep.tudo2.data.TaskConstants;
+import de.m0ep.tudo2.data.TaskContract.Task;
+import de.m0ep.tudo2.data.TaskContract.TaskColumns;
 
-public class DailyTaskCursorAdapter extends CursorAdapter {
-
+public class TaskCursorAdapter extends CursorAdapter {
 	private final LayoutInflater inflater;
-	private final TaskSQLiteHelper taskSQLiteHelper;
 
-	public DailyTaskCursorAdapter( Context context, Cursor c ) {
+	public TaskCursorAdapter( Context context, Cursor c ) {
 		super( context, c, 0 );
 		this.inflater = (LayoutInflater) context.getSystemService( Context.LAYOUT_INFLATER_SERVICE );
-		this.taskSQLiteHelper = new TaskSQLiteHelper( context );
 	}
 
 	@Override
 	public void bindView( View view, Context context, Cursor cursor ) {
-		int statusIndex = cursor.getColumnIndex( TaskEntry.STATUS );
-		int priorityIndex = cursor.getColumnIndex( TaskEntry.PRIORITY );
-		int titleIndex = cursor.getColumnIndex( TaskEntry.TITLE );
+		int statusIndex = cursor.getColumnIndex( TaskColumns.STATUS );
+		int priorityIndex = cursor.getColumnIndex( TaskColumns.PRIORITY );
+		int titleIndex = cursor.getColumnIndex( TaskColumns.TITLE );
 
 		String status = cursor.getString( statusIndex );
 		String priority = cursor.getString( priorityIndex );
 		String title = cursor.getString( titleIndex );
 
-		boolean completed = TaskModel.STATUS_COMPLETED.equals( status );
+		boolean completed = TaskConstants.STATUS_COMPLETED.equals( status );
 
 		final int position = cursor.getPosition();
 		final ViewHolder vh = (ViewHolder) view.getTag();
@@ -58,20 +55,17 @@ public class DailyTaskCursorAdapter extends CursorAdapter {
 				long id = getItemId( position );
 
 				ContentValues values = new ContentValues();
-				values.put( TaskEntry.STATUS, isChecked
-				        ? TaskModel.STATUS_COMPLETED
-				        : TaskModel.STATUS_NOT_COMPLETED );
-				values.put( TaskEntry.COMPLETED, isChecked
-				        ? TaskService.formatDateTimeISO8601( new Date() )
+				values.put( Task.STATUS, isChecked
+				        ? TaskConstants.STATUS_COMPLETED
+				        : TaskConstants.STATUS_NOT_COMPLETED );
+				values.put( Task.COMPLETED, isChecked
+				        ? Iso8601DateUtils.formatDateTimeIso8601( new Date() )
 				        : "" );
 
-				SQLiteDatabase db = taskSQLiteHelper.getWritableDatabase();
-				int res = db.update( TaskEntry.TABLENAME,
-				        values,
-				        TaskEntry._ID + " = ?",
-				        new String[] { Long.toString( id ) } );
+				Uri uri = ContentUris.withAppendedId( Task.CONTENT_URI, id );
+				int rowsUpdated = mContext.getContentResolver().update( uri, values, null, null );
 
-				if ( 0 < res ) {
+				if ( 0 < rowsUpdated ) {
 					updateVisualCheckStatus( vh.textPriority, isChecked );
 					updateVisualCheckStatus( vh.textTitle, isChecked );
 				}

@@ -1,15 +1,19 @@
 package de.m0ep.tudo2;
 
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
@@ -25,27 +29,26 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import de.m0ep.tudo2.TaskListOnTouchListener.TaskTouchActionCallback;
-import de.m0ep.tudo2.model.TaskService;
-import de.m0ep.tudo2.provider.TaskContract;
-import de.m0ep.tudo2.provider.TaskContract.TaskEntry;
-import de.m0ep.tudo2.provider.TaskSQLiteHelper;
+import de.m0ep.tudo2.data.TaskContract.Task;
+import de.m0ep.tudo2.data.TaskContract.TaskColumns;
 
-public class DailyTaskFragment
+public class DailyTaskListFragment
         extends ListFragment
         implements OnClickListener, TaskTouchActionCallback, MultiChoiceModeListener {
+	private static final String TAG = DailyTaskListFragment.class.getName();
+
 	private static final String STATE_KEY_SELECTED_DATE = "selected_date";
 
 	private static final String[] QUERY_PROJECTION = new String[] {
-	        TaskEntry._ID,
-	        TaskEntry.DELETED,
-	        TaskEntry.DUE,
-	        TaskEntry.PRIORITY,
-	        TaskEntry.STATUS,
-	        TaskEntry.TITLE
+	        Task._ID,
+	        Task.IS_DELETED,
+	        Task.DUE,
+	        Task.PRIORITY,
+	        Task.STATUS,
+	        Task.TITLE
 	};
-	private static final String QUERY_SELECTION = TaskEntry.DELETED + " = 0 AND "
-	        + TaskEntry.DUE + " = ?";
-	private static final String QUERY_ORDER_BY = TaskEntry._ID + " ASC";
+	private static final String QUERY_SELECTION = Task.IS_DELETED + " = 0 AND " + Task.DUE + " = ?";
+	private static final String QUERY_ORDER_BY = Task._ID + " ASC";
 
 	private Calendar selectedDate;
 	private java.text.DateFormat dateFormat;
@@ -55,8 +58,7 @@ public class DailyTaskFragment
 	private TextView txtCurDate;
 	private ListView listView;
 
-	private TaskSQLiteHelper dbHelper;
-	private DailyTaskCursorAdapter dailyTaskAdapter;
+	private TaskCursorAdapter dailyTaskAdapter;
 	private TaskListOnTouchListener taskListOnTouchListener;
 
 	@Override
@@ -65,7 +67,6 @@ public class DailyTaskFragment
 
 		dateFormat = DateFormat.getDateFormat( getActivity() );
 		selectedDate = Calendar.getInstance();
-		dbHelper = new TaskSQLiteHelper( getActivity() );
 	}
 
 	@Override
@@ -88,7 +89,7 @@ public class DailyTaskFragment
 		btnPrevDate.setOnClickListener( this );
 
 		listView = getListView();
-		dailyTaskAdapter = new DailyTaskCursorAdapter( getActivity(), null );
+		dailyTaskAdapter = new TaskCursorAdapter( getActivity(), null );
 		setListAdapter( dailyTaskAdapter );
 
 		taskListOnTouchListener = new TaskListOnTouchListener( listView, this );
@@ -140,42 +141,43 @@ public class DailyTaskFragment
 	@Override
 	public void onMoveTask( int postition ) {
 		long id = listView.getItemIdAtPosition( postition );
-
-		SQLiteDatabase db = dbHelper.getWritableDatabase();
-		Cursor cursor = db.query( TaskEntry.TABLENAME,
-		        new String[] {
-		                TaskEntry._ID,
-		                TaskEntry.DUE,
-		                TaskEntry.TITLE },
-		        TaskContract.TaskEntry._ID + " = ?",
-		        new String[] { Long.toString( id ) },
+		Uri uri = ContentUris.withAppendedId( Task.CONTENT_URI, id );
+		ContentResolver contentResolver = getActivity().getContentResolver();
+		Cursor cursor = contentResolver.query( uri,
+		        new String[] { Task._ID, TaskColumns.DUE, TaskColumns.TITLE },
 		        null, null, null );
 
 		if ( cursor.moveToFirst() ) {
-			int dueIndex = cursor.getColumnIndex( TaskEntry.DUE );
-			int titleIndex = cursor.getColumnIndex( TaskEntry.TITLE );
+			int dueIndex = cursor.getColumnIndex( TaskColumns.DUE );
+			int titleIndex = cursor.getColumnIndex( TaskColumns.TITLE );
 			String dueString = cursor.getString( dueIndex );
 			String titleString = cursor.getString( titleIndex );
 
-			Date date = TaskService.parseDateISO8601( dueString );
-			Calendar cal = Calendar.getInstance();
-			cal.setTime( date );
-
-			cal.add( Calendar.DAY_OF_YEAR, 1 );
-
-			String newDueString = TaskService.formatDateISO8601( cal.getTime() );
-			ContentValues values = new ContentValues();
-			values.put( TaskEntry.DUE, newDueString );
-
-			int res = db.update( TaskEntry.TABLENAME,
-			        values,
-			        TaskEntry._ID + " = ?",
-			        new String[] { Long.toString( id ) } );
-
-			if ( 0 < res ) {
+			Date date = null;
+			try {
+				date = Iso8601DateUtils.parseDateIso8601( dueString );
+			} catch ( ParseException e ) {
+				Log.v( TAG, "Failed to parse ISO8601 date '" + dueString + "'" );
 				Toast.makeText(
 				        getActivity(),
-				        "Moved '" + titleString + "' to the next day",
+				        R.string.error_task_moving_failed,
+				        Toast.LENGTH_SHORT ).show();
+				return;
+			}
+
+			Calendar cal = Calendar.getInstance();
+			cal.setTime( date );
+			cal.add( Calendar.DAY_OF_YEAR, 1 );
+
+			String newDueString = Iso8601DateUtils.formatDateIso8601( cal.getTime() );
+			ContentValues values = new ContentValues();
+			values.put( TaskColumns.DUE, newDueString );
+
+			int updatedRows = contentResolver.update( uri, values, null, null );
+			if ( 0 < updatedRows ) {
+				Toast.makeText(
+				        getActivity(),
+				        getString( R.string.fmt_move_task, titleString ),
 				        Toast.LENGTH_SHORT ).show();
 
 				refreshListView( selectedDate );
@@ -209,15 +211,10 @@ public class DailyTaskFragment
 		long[] checkedItemIds = listView.getCheckedItemIds();
 		switch ( item.getItemId() ) {
 			case R.id.menu_delete: {
-				SQLiteDatabase db = dbHelper.getWritableDatabase();
-				ContentValues values = new ContentValues();
-				values.put( TaskContract.TaskEntry.DELETED, 1 );
-
+				ContentResolver contentResolver = getActivity().getContentResolver();
 				for ( long id : checkedItemIds ) {
-					db.update( TaskContract.TaskEntry.TABLENAME,
-					        values,
-					        TaskContract.TaskEntry._ID + " = ?",
-					        new String[] { Long.toString( id ) } );
+					Uri uri = ContentUris.withAppendedId( Task.CONTENT_URI, id );
+					contentResolver.delete( uri, null, null );
 				}
 
 				refreshListView( selectedDate );
@@ -241,7 +238,7 @@ public class DailyTaskFragment
 				} else {
 					Toast.makeText(
 					        getActivity(),
-					        R.string.error_loading_to_edit_failed,
+					        R.string.error_task_loading_failed,
 					        Toast.LENGTH_SHORT ).show();
 				}
 			}
@@ -267,16 +264,14 @@ public class DailyTaskFragment
 	/******* Helper Methods *******/
 
 	private void refreshListView( Calendar selectedDate ) {
-		SQLiteDatabase db = dbHelper.getReadableDatabase();
-		Cursor c = db.query( TaskEntry.TABLENAME,
+		ContentResolver contentResolver = getActivity().getContentResolver();
+		Cursor cursor = contentResolver.query( Task.CONTENT_URI,
 		        QUERY_PROJECTION,
 		        QUERY_SELECTION,
-		        new String[] { TaskService.formatDateISO8601( selectedDate.getTime() ) },
-		        null,
-		        null,
+		        new String[] { Iso8601DateUtils.formatDateIso8601( selectedDate.getTime() ) },
 		        QUERY_ORDER_BY );
 
-		c.moveToFirst();
-		dailyTaskAdapter.swapCursor( c );
+		cursor.moveToFirst();
+		dailyTaskAdapter.swapCursor( cursor );
 	}
 }

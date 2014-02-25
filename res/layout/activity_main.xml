@@ -9,7 +9,7 @@
         android:id="@+id/daily_task_fragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        class="de.m0ep.tudo2.DailyTaskFragment"
+        class="de.m0ep.tudo2.DailyTaskListFragment"
         tools:layout="@layout/daily_task_layout" />
 
 </LinearLayout>
