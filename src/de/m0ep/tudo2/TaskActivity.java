@@ -1,17 +1,22 @@
 package de.m0ep.tudo2;
 
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.util.Calendar;
+import java.util.Date;
 
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.DatePickerDialog.OnDateSetListener;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -19,10 +24,9 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
-import de.m0ep.tudo2.model.TaskModel;
-import de.m0ep.tudo2.model.TaskService;
-import de.m0ep.tudo2.provider.TaskContract;
-import de.m0ep.tudo2.provider.TaskSQLiteHelper;
+import de.m0ep.tudo2.data.TaskContract.Task;
+import de.m0ep.tudo2.data.TaskContract.TaskColumns;
+import de.m0ep.tudo2.data.TaskSQLiteHelper;
 
 public class TaskActivity extends Activity {
 	public static final String TAG = TaskActivity.class.getName();
@@ -98,10 +102,8 @@ public class TaskActivity extends Activity {
 			}
 		} );
 
-		boolean dataLoadedToViews = false;
 		if ( null != savedInstanceState ) {
 			restoreInstanceState( savedInstanceState );
-			dataLoadedToViews = true;
 		} else if ( null != getIntent() ) {
 			Intent startIntent = getIntent();
 			Bundle extras = startIntent.getExtras();
@@ -112,11 +114,18 @@ public class TaskActivity extends Activity {
 				activityMode = extras.getInt( EXTRA_TASK_ACTIVITY_MODE );
 				taskToEditId = extras.getLong( EXTRA_TASK_ID );
 
-				dataLoadedToViews = loadTaskToEdit( taskToEditId );
+				if ( !loadTaskToEdit( taskToEditId ) ) {
+					Toast.makeText( getApplicationContext(),
+					        R.string.error_task_loading_failed,
+					        Toast.LENGTH_SHORT )
+					        .show();
+					finish();
+					return;
+				}
+			} else {
+				setInstanceStateToDefault();
 			}
-		}
-
-		if ( !dataLoadedToViews ) {
+		} else {
 			setInstanceStateToDefault();
 		}
 
@@ -179,47 +188,55 @@ public class TaskActivity extends Activity {
 
 	private boolean loadTaskToEdit( long id ) {
 		SQLiteDatabase db = dbHelper.getReadableDatabase();
-		Cursor cursor = db.query( TaskContract.TaskEntry.TABLENAME,
+		Cursor cursor = db.query( TaskColumns.TABLENAME,
 		        new String[] {
-		                TaskContract.TaskEntry._ID,
-		                TaskContract.TaskEntry.TITLE,
-		                TaskContract.TaskEntry.NOTE,
-		                TaskContract.TaskEntry.PRIORITY,
-		                TaskContract.TaskEntry.DUE
+		                Task._ID,
+		                TaskColumns.TITLE,
+		                TaskColumns.NOTE,
+		                TaskColumns.PRIORITY,
+		                TaskColumns.DUE
 		        },
-		        TaskContract.TaskEntry._ID + " = ?",
+		        Task._ID + " = ?",
 		        new String[] { Long.toString( id ) },
 		        null, null, null );
-	
+
 		if ( cursor.moveToFirst() ) {
-			int titleIndex = cursor.getColumnIndex( TaskContract.TaskEntry.TITLE );
-			int noteIndex = cursor.getColumnIndex( TaskContract.TaskEntry.NOTE );
-			int priorityIndex = cursor.getColumnIndex( TaskContract.TaskEntry.PRIORITY );
-			int dueIndex = cursor.getColumnIndex( TaskContract.TaskEntry.DUE );
-	
+			int titleIndex = cursor.getColumnIndex( TaskColumns.TITLE );
+			int noteIndex = cursor.getColumnIndex( TaskColumns.NOTE );
+			int priorityIndex = cursor.getColumnIndex( TaskColumns.PRIORITY );
+			int dueIndex = cursor.getColumnIndex( TaskColumns.DUE );
+
 			String title = cursor.getString( titleIndex );
 			String note = cursor.getString( noteIndex );
 			String priority = cursor.getString( priorityIndex );
 			String due = cursor.getString( dueIndex );
-	
+
 			editTitle.setText( title );
 			editNote.setText( note );
-	
+
 			for ( int i = 0; i < prioritiesArray.length; i++ ) {
 				if ( prioritiesArray[i].equals( priority ) ) {
 					spinnerPriority.setSelection( i );
 					break;
 				}
 			}
-	
+
+			Date parsedDate;
+			try {
+				parsedDate = Iso8601DateUtils.parseDateIso8601( due );
+			} catch ( ParseException e ) {
+				Log.v( TAG, "Failed to parse ISO8601 date '" + due + "'" );
+				return false;
+			}
+
 			Calendar dueCalendar = Calendar.getInstance();
-			dueCalendar.setTime( TaskService.parseDateISO8601( due ) );
+			dueCalendar.setTime( parsedDate );
 			buttonDueDate.setText( dateFormat.format( dueCalendar.getTime() ) );
 			buttonDueDate.setTag( dueCalendar );
-	
+
 			return true;
 		}
-	
+
 		return false;
 	}
 
@@ -246,39 +263,27 @@ public class TaskActivity extends Activity {
 	}
 
 	private void storeData() {
-		TaskModel entry = new TaskModel();
 		String title = editTitle.getText().toString();
+		String priority = prioritiesArray[(int) spinnerPriority.getSelectedItemId()];
+		Calendar dueDate = (Calendar) buttonDueDate.getTag();
+		String note = editNote.getText().toString();
 
 		if ( TextUtils.isEmpty( title ) ) {
 			Toast.makeText( this, R.string.error_task_title_is_empty, Toast.LENGTH_SHORT ).show();
 			return;
 		}
 
-		entry.setTitle( title );
-		entry.setPriority( prioritiesArray[(int) spinnerPriority.getSelectedItemId()] );
-		entry.setDue( (Calendar) buttonDueDate.getTag() );
-
-		String note = editNote.getText().toString();
-		if ( !TextUtils.isEmpty( note ) ) {
-			entry.setNote( note );
-		}
-
-		entry.setUpdated( Calendar.getInstance() );
-
-		long returnId = -1;
+		ContentValues values = new ContentValues();
+		values.put( Task.TITLE, title );
+		values.put( Task.PRIORITY, priority );
+		values.put( Task.DUE, Iso8601DateUtils.formatDateIso8601( dueDate.getTime() ) );
+		values.put( Task.NOTE, TextUtils.isEmpty( note ) ? "" : note );
 
 		if ( MODE_EDIT_TASK == activityMode ) {
-			entry.setId( taskToEditId );
-			returnId = TaskService.update( dbHelper.getWritableDatabase(), entry );
+			Uri uri = ContentUris.withAppendedId( Task.CONTENT_URI, taskToEditId );
+			getContentResolver().update( uri, values, null, null );
 		} else {
-			returnId = TaskService.insert( dbHelper.getWritableDatabase(), entry );
+			getContentResolver().insert( Task.CONTENT_URI, values );
 		}
-
-		Intent resultIntent = new Intent();
-		resultIntent.putExtra( EXTRA_TASK_URI,
-		        ContentUris.withAppendedId(
-		                TaskContract.TaskEntry.CONTENT_URI,
-		                returnId ) );
-		setResult( RESULT_OK, resultIntent );
 	}
 }

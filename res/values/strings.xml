@@ -30,8 +30,11 @@
     <string name="hint_title">Title</string>
     <string name="hint_note">Note</string>
     
+    <string name="fmt_move_task">Moved \'%s\' to the next day</string>
+    
     <string name="error_task_due_date_in_past">Select a due date from now on</string>
     <string name="error_task_title_is_empty">Please fill in a title for the Task</string>
-    <string name="error_loading_to_edit_failed">"Can't load task to edit"</string>
+    <string name="error_task_loading_failed">Task loading failed</string>
+    <string name="error_task_moving_failed">Moving this Task failed</string>
     
 </resources>

@@ -31,7 +31,7 @@
                 android:value="de.m0ep.tudo2.MainActivity" />
         </activity>
         <provider 
-            android:name=".provider.TaskProvider" 
+            android:name="de.m0ep.tudo2.data.TaskProvider" 
             android:authorities="de.m0ep.tudo2.taskprovider" 
             android:label="task_provider" 
             android:exported="true" 
